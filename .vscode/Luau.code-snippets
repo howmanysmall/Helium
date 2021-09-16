@@ -1,0 +1,320 @@
+{
+	"LoadLibrary": {
+		"body": "local ${1|AccelTween,AddMessage,AddMessageFromEvent,AddMessageWithTimeout,AdorneeUtility,AnimatedBlurEffect,AnimatedDot,AnimatedScale,AnimatedSpritesheetPlayer,ArmFABRIKBase,ArmIKBase,ArrayList,ArrowAdornment,AsFocusable,Assets,Aurora,AutoFixedScrollingFrame,AutomatedScrollingFrame,AutomatedScrollingFrameComponent,AvatarEditorPromise,AverageFramerate,Base64,BaseObject,BasicPane,BasicState,Bezier,BigNum,BinStruct,BinarySearchTree,Binder,BinderProvider,Bindings,BitBuf,BitBuffer,BoatTween,BoundLinkConnectionUtils,BoundingBoxUtility,Brio,BrioUtils,BurntClass,CFrameUtility,CameraControls,CameraGamepadInputUtils,CameraPlus,CameraShaker,CameraStackService,CameraState,CameraStateTweener,CameraUtils,CancelToken,CatchFactory,CharacterUtils,ChatSettings,CircularBuffer,Class,ClothingPurchase,CloudCover,Cmdr,CollisionsHandler,Color,Component,ConditionalPoller,Constants,CreateFocusableCache,CreateRefCache,CustomCameraEffect,Data,DataHandler,DataStore,DataStore2,DataStoreDeleteToken,DataStorePromises,DataStoreStage,DataStoreWriter,Date,DateTimePlus,Debug,DefaultCamera,Dot,Draw,ECS,EasingFunctions,Enumeration,Enumerations,Error,ExternalEventConnection,FABRIKBone,FABRIKChain,FABRIKConstraint,FABRIKElbowConstraint,FABRIKHandConstraint,FABRIKShoulderConstraint,FABRIKUtils,FABRIKVertex,FFlagApi,Fabric,Fabric2,FadeBetweenCamera,FadingCamera,FakeSkybox,FakeSkyboxSide,FastCast,FastCast2,FastEvent,FastSignal,FastZones,FieldOfViewUtils,FilterPromise,FireClass,FireParts,FirstPersonCharacterTransparency,FitComponents,FitList,FitText,Flipper,Flipper2,Fmt,FocusContext,FocusController,FocusControllerInternalApi,FocusNode,ForwardRef,Freeze,FromAxis,FromNormalId,GABusinessEventUtils,GAConstants,GACustomDimsUtils,GAEncoding,GAEntityAnalyticsBase,GAEnumUtils,GAErrorEventUtils,GAErrorLog,GAErrorSeverityType,GAEventAggregator,GAEventCategoryType,GAEventQueue,GAFlowType,GAHttpApi,GAItemIdUtils,GALogConstants,GALogger,GALoggerClient,GALoggingUtils,GAPlatformType,GAPlayerAnalytics,GAPlayerAnalyticsProvider,GAPlayerData,GAPlayerDataStoreApi,GAPlayerErrorLogManager,GAPlayerQueryUtils,GAPlayerTeleportWatcher,GAResourceEventUtils,GAServerAnalytics,GASessionUtils,GASoftAssertUtils,GameAnalyticsService,GameAnalyticsServiceClient,GamePasses,GameProvider,GameStartup,GameStartup,GamepadRotateModel,GenericPermissionProviderClient,GenericScreenGuiProvider,GetEngineInterface,GetIterator,GetPlayerFromPart,GetSettingsForMessage,GetSizeSpringFromSettings,GetTransparencySpringFromSettings,GripPointer,GroupPromise,GuiFlasher,GuiMounting,HashLib,HeartbeatCamera,HintBar,HintScoringUtility,HostService,HttpPromise,HumanoidAnimatorUtils,HumanoidTracker,IKAimPositionPriorites,IKConstants,IKGripBase,IKGripUtils,IKLeftGrip,IKResource,IKResourceUtils,IKRig,IKRigAimerLocalPlayer,IKRigBase,IKRigClient,IKRigUtils,IKRightGrip,IKService,IKServiceClient,IKUtils,INPUT_MODES,Immutable,ImmutableSignal,ImpulseCamera,Indicator,Input,InputBindingsEqual,InputKeyMapUtility,InputListScoreHelper,InputMode,InputModeProcessor,InputModeSelector,InteractPrompt,InverseFader,IsAFK,Janitor,Keys,LagPointCamera,Lerps,Leveler,LinkedList,Llama,Loop,LuaRegex,MadworkScriptSignal,MainMenu,Make,MarketplacePromise,MashdButton,MashdGradient,MashdIcon,MashdNotification,MasterClock,Math,MinPriorityQueue,ModelTransparencyEffect,Mouse,Multithreader,MusicHandler,Nametag,NametagBadges,Net,NetworkOwnerService,NoYield,None,NumberToInputKeyUtility,Object,Observable,Octree,OctreeNode,OctreeRegionUtils,OldLuaRegex,OnRenderStepFrame,Option,OrderService,OutdoorLights,PartCache,ParticleEngine,ParticleEngine,ParticleEngineHelper,PendingPromiseTracker,PerfectTextLabel,PermissionProvider,PermissionProviderClient,PermissionProviderUtils,PillBackingBuilder,PlayerDataStoreManager,PlayerPromise,PlayerSpawning,PointCamera,Postie,PriorityQueue,ProcessingDots,ProfileService,ProfileServiceLegacy,ProgressStroke,Promise,PromiseBoundClass,PromiseChild,PromiseChildOfClass,PromiseGetRemoteEvent,PromiseGetRemoteFunction,PromisePropertyValue,PromiseRemoteEventMixin,PromiseUtils,ProximityInputKeyMap,ProximityPromptUtility,PseudoInstance,PushCamera,Quaternion,QuaternionObject,Queue,Quicksave,RadialImage,RadialMenu,RadialProgress,Rain,RateLimiter,Raycast,RaycastHitbox,Raycaster2,Recs,Regex,RemoteEventHelper,Remotes,RemoveMessage,Replica,ReplicaController,ReplicaService,ReplicaServiceListeners,ReplicatedPseudoInstance,ReplicatedTweening,ReplicatedTweening2,ReplicatedValue,Repr,RestockGuiEnabler,RestockHandler,Roact,RoactFlipper,RoactMotion,RoactRodux,RoactRouter,RoactSpritesheets,Rodux,RotatedCamera,RotatedRegion3,RunSpring,Rx,RxBinderUtils,RxBrioUtils,RxInstanceUtils,RxLinkUtils,Scale,Scaler,ScalingUtility,Scheduler,ScoredAction,ScoredActionPicker,ScoredActionPickerProvider,ScoredActionService,ScoredActionUtility,ScreenGuiProvider,SeasonService,SelectionBox,SemVer,SenseManager,Sentry,Sentry2,SentryV2,Ser,ServerHandler,SetMessageText,Shadow,ShakeEffect,SharedState,ShutdownMessage,Signal,SitDetector,SlaveClock,SmoothPositionCamera,SmoothRotatedCamera,SmoothZoomedCamera,SocialPromise,SoftShutdown,SortedArray,SpillHandler,Spring,SpritesheetHandler,Spy,Stack,State,StateStack,StepUtility,StockBubble,Store,String,StrokeFrame,Subscription,SummedCamera,Symbol,SyncedPoller,SyncedTweenService,SyncedTweenServiceV2,SystemMessageClient,Table,Tag,TaskScheduler,TeleportPromise,TemplateProvider,ThrottledFunction,TimeService,TimeSyncService,TimeSyncUtils,TimeSyncer,TorsoIKBase,TorsoIKUtils,TrackCamera,TransparencyService,TrelloApi,TriggerOctree,Try,Tween,TweenService,TypeOf,Typer,TyperPlus,TypingAnimation,UILite,UnsyncedPoller,UpdateChatSettings,Utility,ValueObject,Visualizer,VisualizerI,WaitForFirst,WeakInstanceJanitor,WeakInstanceTable,WeightedProbability,WindLines,WindShake,WithFocusController,XZPlaneLockCamera,Zone,ZonesData,ZoomedCamera,anatta,int,observeProperty,qPromise,t,tpcall|} = Resources.LoadLibrary(\"$1\")$0",
+		"description": "LoadLibrary",
+		"prefix": "loadlibrary",
+	},
+
+	"RaycastParams": {
+		"body": [
+			"local ${1:Parameters} = RaycastParams.new()",
+			"$1.FilterType = Enum.RaycastFilterType.${2:Blacklist}",
+			"$1.IgnoreWater = ${3:false}",
+			"$1.FilterDescendantsInstances = ${4:FilterDescendantsInstances}",
+			"$1.CollisionGroup = \"${5:}\"",
+		],
+
+		"description": "Creates a new RaycastParams object.",
+		"prefix": "RaycastParams",
+	},
+
+	"AssignSignature": {
+		"body": "Typer.AssignSignature(${1:Typer.Any}, ${2:function(${3:Value})\nend})",
+		"description": "AssignSignature",
+		"prefix": "assignsignature",
+	},
+
+	"PromiseAssignSignature": {
+		"body": "Typer.PromiseAssignSignature(${1:Typer.Any}, ${2:function(${3:Value})\nend})",
+		"description": "PromiseAssignSignature",
+		"prefix": "promiseassignsignature",
+	},
+
+	"Knit": {
+		"body": [
+			"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+			"local Knit = require(ReplicatedStorage.Knit)",
+		],
+
+		"description": "Require the Knit module",
+		"prefix": "knit",
+	},
+
+	"Knit Component": {
+		"body": [
+			"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+			"local Knit = require(ReplicatedStorage.Knit)",
+			"local Janitor = require(Knit.Util.Janitor)",
+			"",
+			"local ${0:$TM_FILENAME_BASE} = {}",
+			"${0:$TM_FILENAME_BASE}.ClassName = \"${0:$TM_FILENAME_BASE}\"",
+			"${0:$TM_FILENAME_BASE}.Tag = \"${0:$TM_FILENAME_BASE}\"",
+			"${0:$TM_FILENAME_BASE}.__index = ${0:$TM_FILENAME_BASE}",
+			"",
+			"function ${0:$TM_FILENAME_BASE}.new(Object: Instance)",
+			"\tlocal self = setmetatable({",
+			"\t\tJanitor = Janitor.new();",
+			"\t}, ${0:$TM_FILENAME_BASE})",
+			"",
+			"\treturn self",
+			"end",
+			"",
+			"function ${0:$TM_FILENAME_BASE}:Init()",
+			"end",
+			"",
+			"function ${0:$TM_FILENAME_BASE}:Deinit()",
+			"end",
+			"",
+			"function ${0:$TM_FILENAME_BASE}:Destroy()",
+			"\tself.Janitor:Destroy()",
+			"\ttable.clear(self)",
+			"\tsetmetatable(self, nil)",
+			"end",
+			"",
+			"return ${0:$TM_FILENAME_BASE}",
+			"",
+		],
+
+		"description": "Knit Component template",
+		"prefix": "knitcomponent",
+	},
+
+	"Knit Service": {
+		"body": [
+			"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+			"local Knit = require(ReplicatedStorage.Knit)",
+			"",
+			"local ${0:$TM_FILENAME_BASE} = Knit.CreateService({",
+			"\tName = \"${0:$TM_FILENAME_BASE}\";",
+			"\tClient = {};",
+			"})",
+			"",
+			"function ${0:$TM_FILENAME_BASE}:KnitStart()",
+			"end",
+			"",
+			"function ${0:$TM_FILENAME_BASE}:KnitInit()",
+			"end",
+			"",
+			"return ${0:$TM_FILENAME_BASE}",
+			"",
+		],
+
+		"description": "Knit Service template",
+		"prefix": "knitservice",
+	},
+
+	"Knit Controller": {
+		"body": [
+			"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+			"local Knit = require(ReplicatedStorage.Knit)",
+			"",
+			"local ${0:$TM_FILENAME_BASE} = Knit.CreateController({",
+			"\tName = \"${0:$TM_FILENAME_BASE}\";",
+			"})",
+			"",
+			"function ${0:$TM_FILENAME_BASE}:KnitStart()",
+			"end",
+			"",
+			"function ${0:$TM_FILENAME_BASE}:KnitInit()",
+			"end",
+			"",
+			"return ${0:$TM_FILENAME_BASE}",
+			"",
+		],
+
+		"description": "Knit Controller template",
+		"prefix": "knitcontroller",
+	},
+
+	"Knit Require": {
+		"body": "local ${1:Name} = require(Knit.${2:Util}.${1:Name})",
+		"description": "Knit Require template",
+		"prefix": "knitrequire",
+	},
+
+	"Benchmark": {
+		"body": [
+			"local Functions = {}",
+			"",
+			"Functions[\"${1:FunctionOne}\"] = function()",
+			"end",
+			"",
+			"Functions[\"${2:FunctionTwo}\"] = function()",
+			"end",
+			"",
+			"require(4185109675).new(1, \"${3:BenchmarkName}\", Functions)",
+			"",
+		],
+
+		"description": "Benchmark code",
+		"prefix": "bench",
+	},
+
+	// "Janitor Class": {
+	// 	"prefix": ["janitorclass"],
+	// 	"description": "Creates a new class that implements Janitor.",
+	// 	"body": [
+	// 		"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+	// 		"local Resources = require(ReplicatedStorage.Resources)",
+	// 		"local Janitor = Resources.LoadLibrary(\"Janitor\")",
+	// 		"local Table = Resources.LoadLibrary(\"Table\")",
+	// 		"",
+	// 		"local ${1:ClassName} = {ClassName = \"$1\"}",
+	// 		"$1.__index = $1",
+	// 		"",
+	// 		"function $1.new()",
+	// 		"\tlocal self = setmetatable({",
+	// 		"\t\tJanitor = Janitor.new();",
+	// 		"\t}, $1)",
+	// 		"",
+	// 		"\treturn self",
+	// 		"end",
+	// 		"",
+	// 		"function $1:Destroy()",
+	// 		"\tself.Janitor:Destroy()",
+	// 		"\ttable.clear(self)",
+	// 		"\tsetmetatable(self, nil)",
+	// 		"end",
+	// 		"",
+	// 		"return Table.Lock($1, nil, script.Name)",
+	// 		"",
+	// 	],
+	// },
+
+	// "Module": {
+	// 	"prefix": "module",
+	// 	"description": "Creates a module.",
+	// 	"body": [
+	// 		"local Resources = require(ReplicatedStorage.Resources)",
+	// 		"local Table = Resources.LoadLibrary(\"Table\")",
+	// 		"",
+	// 		"local NewModule = {}",
+	// 		"",
+	// 		"return Table.Lock(NewModule, nil, script.Name)",
+	// 		"",
+	// 	],
+	// },
+
+	"random": {
+		"body": [
+			"local RandomLib = Random.new(tick() % 1 * 1E7)",
+			"local NextInteger = RandomLib.NextInteger",
+			"local NextNumber = RandomLib.NextNumber",
+		],
+
+		"description": "Random shorthand",
+		"prefix": "random",
+	},
+
+	"boilerplate": {
+		"body": [
+			"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+			"local Resources = require(ReplicatedStorage:WaitForChild(\"Resources\"))",
+		],
+
+		"description": "Quickly setup my boilerplate.",
+		"prefix": "boilerplate",
+	},
+
+	"IfTypeCheck": {
+		"body": [
+			"local TypeSuccess, TypeError = ${1:TypeCheck}(${2:...})",
+			"if not TypeSuccess then",
+			"\terror(TypeError, 2)",
+			"end",
+		],
+
+		"description": "Creates a new if-then type check for t.",
+		"prefix": ["tifcheck", "tiftypecheck"],
+	},
+
+	"Roact Story": {
+		"body": [
+			"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+			"local Resources = require(ReplicatedStorage.Resources)",
+			"local ${1:ComponentName} = require(script.Parent)",
+			"",
+			"--- @type Roact",
+			"local Roact = Resources.LoadLibrary(\"Roact\")",
+			"",
+			"Roact.setGlobalConfig({",
+			"\telementTracing = true,",
+			"\tinternalTypeChecks = false,",
+			"\tpropValidation = false,",
+			"\ttypeChecks = false,",
+			"})",
+			"",
+			"return function(Target)",
+			"\tlocal Tree = Roact.mount(Roact.createElement($1), Target, \"$1Story\")",
+			"",
+			"\treturn function()",
+			"\t\tRoact.unmount(Tree)",
+			"\tend",
+			"end",
+			"",
+		],
+
+		"description": "Creates a new Roact story",
+		"prefix": ["roactstory", "story"],
+	},
+
+	"Roact Component": {
+		"body": [
+			"--- @type Roact",
+			"local Roact = Resources.LoadLibrary(\"Roact\")",
+			"",
+			"local ${1:ComponentName} = Roact.PureComponent:extend(\"$1\")",
+			"",
+			"local Roact_createElement = Roact.createElement",
+			"",
+			"function $1:init()",
+			"\tself:setState({",
+			"\t\tvalue = true,",
+			"\t})",
+			"end",
+			"",
+			"function $1:render()",
+			"\treturn Roact_createElement(\"Frame\", {})",
+			"end",
+			"",
+			"return $1",
+			"",
+		],
+
+		"description": "Creates a new Roact Component",
+		"prefix": ["roactcomponent", "component"],
+	},
+
+	"Basic Class": {
+		"body": [
+			"local ${1:ClassName} = {ClassName = \"$1\"}",
+			"$1.__index = $1",
+			"",
+			"function $1.new()",
+			"\treturn setmetatable({}, $1)",
+			"end",
+			"",
+			"function $1:__tostring()",
+			"\treturn \"$1\"",
+			"end",
+			"",
+			"return $1",
+			"",
+		],
+
+		"description": "Creates a new basic class.",
+		"prefix": ["basicclass", "class"],
+	},
+
+	"Knit Tool": {
+		"body": [
+			"local ReplicatedStorage = game:GetService(\"ReplicatedStorage\")",
+			"local Knit = require(ReplicatedStorage:WaitForChild(\"Knit\"))",
+			"local Janitor = require(Knit.Util:WaitForChild(\"Janitor\"))",
+			"local Scheduler = require(Knit.Util:WaitForChild(\"Scheduler\"))",
+		],
+
+		"description": "Knit Tool",
+		"prefix": ["Tool", "KnitTool"],
+	},
+}
