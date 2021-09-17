@@ -1,7 +1,7 @@
 --!strict
 local Debug = require(script.Parent.Utility.Debug)
 local GlobalConfiguration = require(script.Parent.GlobalConfiguration)
-local Typer = require(script.Parent.Utility.Typer)
+local t = require(script.Parent.Utility.t)
 
 export type ActionCreatorFunction = (...any) -> {[any]: any}
 
@@ -10,7 +10,7 @@ local function MakeActionCreator(ActionName: string, Function: ActionCreatorFunc
 	function Metatable:__call(...)
 		local ActionTable = Function(...)
 		if GlobalConfiguration.Get("RunTypeChecking") then
-			Debug.Assert(Typer.Check(table.create(1, "table"), ActionTable, "ActionTable"))
+			Debug.Assert(t.table(ActionTable))
 		end
 
 		ActionTable.Type = ActionName

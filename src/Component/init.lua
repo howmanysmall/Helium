@@ -103,7 +103,7 @@ function Component:Constructor(StoreObject)
 	local ReadOnlyCache = {}
 
 	if UseStore then
-		function self.GetReducedState()
+		self.GetReducedState = function()
 			local ReducedState = {}
 			for Index, StateKey in ipairs(MappedStateKeys) do
 				local KeyPath = MappedKeyPaths[Index]
@@ -122,13 +122,13 @@ function Component:Constructor(StoreObject)
 			return ReducedState
 		end
 	else
-		function self.GetReducedState()
+		self.GetReducedState = function()
 			return {}
 		end
 	end
 
 	if GlobalConfiguration.Get("UseSwitchStatementForQueueRedraw") then
-		function self.QueueRedraw()
+		self.QueueRedraw = function()
 			local CurrentRedrawBinding
 			if GlobalConfiguration.Get("SafeRedrawCheck") then
 				CurrentRedrawBinding = Debug.Assert(RedrawBinding.Cast(self.RedrawBinding))
@@ -166,7 +166,7 @@ function Component:Constructor(StoreObject)
 			until true
 		end
 	else
-		function self.QueueRedraw()
+		self.QueueRedraw = function()
 			local CurrentRedrawBinding
 			if GlobalConfiguration.Get("SafeRedrawCheck") then
 				CurrentRedrawBinding = Debug.Assert(RedrawBinding.Cast(self.RedrawBinding))
@@ -221,8 +221,8 @@ end
 function Component.Extend(ClassName: string)
 	local ComponentStatics = {}
 	ComponentStatics.ClassName = ClassName
-	ComponentStatics.RedrawBinding = RedrawBinding.Heartbeat
 	ComponentStatics.Constructor = nil
+	ComponentStatics.RedrawBinding = RedrawBinding.Heartbeat
 	ComponentStatics.Reduction = nil
 
 	local ComponentMetatable = {}
