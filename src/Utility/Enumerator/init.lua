@@ -56,7 +56,7 @@ local function Enumerator(EnumName: string, EnumValues: EnumValues)
 
 	--[[**
 		Returns an `EnumerationValue` from the calling `Enumeration` or `nil` if the raw value does not exist.
-		@param [t:any] rawValue The raw value of the enum.
+		@param [t:any] RawValue The raw value of the enum.
 		@returns [t:EnumerationValue?] The `EnumerationValue` if it was found.
 	**--]]
 	function Internal.FromRawValue(RawValue)
@@ -65,7 +65,7 @@ local function Enumerator(EnumName: string, EnumValues: EnumValues)
 
 	--[[**
 		Returns `true` only if the provided value is an `EnumerationValue` that is a member of the calling `Enumeration`.
-		@param [t:any] value The value to check for.
+		@param [t:any] Value The value to check for.
 		@returns [t:boolean] True iff it is an `EnumerationValue`.
 	**--]]
 	function Internal.IsEnumValue(Value)
@@ -84,7 +84,7 @@ local function Enumerator(EnumName: string, EnumValues: EnumValues)
 
 	--[[**
 		This function will cast values to the appropriate enumerator. This behaves like a type checker from t, except it returns the value if it was found.
-		@param [t:any] value The value you want to cast.
+		@param [t:any] Value The value you want to cast.
 		@returns [t:false|enumerator,string?] Either returns the appropriate enumeration if found or false and an error message if it couldn't find it.
 	**--]]
 	function Internal.Cast(Value)
@@ -196,7 +196,6 @@ local enumerator = require("enumerator")
 type EnumeratorItem<Value> = enumerator.EnumeratorItem<Value>
 
 export type RunServiceEvent = {
-	--
 	Heartbeat: EnumeratorItem<string>,
 	RenderStepped: EnumeratorItem<string>,
 	Stepped: EnumeratorItem<string>,
