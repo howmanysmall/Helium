@@ -6,7 +6,7 @@ Helium is a UI library based on [Rocrastinate](https://github.com/headjoe3/Rocra
 
 ### Todo
 
-- [ ] Debloat the API.
+-
 
 ### In Progress
 
@@ -15,3 +15,4 @@ Helium is a UI library based on [Rocrastinate](https://github.com/headjoe3/Rocra
 ### Done ✓
 
 - [x] Upload to GitHub.
+- [x] Debloat the API.

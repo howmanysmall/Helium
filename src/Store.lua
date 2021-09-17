@@ -2,7 +2,7 @@ local Debug = require(script.Parent.Utility.Debug)
 local DeepCopyTable = require(script.Parent.Utility.DeepCopyTable)
 local Fmt = require(script.Parent.Utility.Fmt)
 local GlobalConfiguration = require(script.Parent.GlobalConfiguration)
-local Typer = require(script.Parent.Utility.Typer)
+local t = require(script.Parent.Utility.t)
 local _Types = require(script.Parent.Types)
 
 --- @class Store
@@ -34,7 +34,7 @@ end)
 
 -- export type MiddlewareFunction = (Store: Store) -> ((Action: BaseAction) -> ()) -> (Action: BaseAction) -> ()
 
-local BaseActionDefinition = Typer.MapDefinition({Type = Typer.NonNil})
+local BaseActionDefinition = t.interface({Type = t.any})
 
 --[[**
 	Applies a Middleware to the Store. Middlware are simply functions that intercept actions upon being dispatched, and allow custom logic to be applied to them. The way middlewares intercept actions is by providing a bridge in between store.dispatch being called and the root reducer receiving those actions that were dispatched.
@@ -44,17 +44,17 @@ local BaseActionDefinition = Typer.MapDefinition({Type = Typer.NonNil})
 function Store:ApplyMiddleware(Middleware: MiddlewareFunction): Store
 	local RunTypeChecking = GlobalConfiguration.Get("RunTypeChecking")
 	if RunTypeChecking then
-		Debug.Assert(Typer.Check(table.create(1, "function"), Middleware, "Middleware"))
+		Debug.Assert(t.callback(Middleware))
 	end
 
 	local NextHandler = Middleware(self)
 	if RunTypeChecking then
-		Debug.Assert(Typer.Function(NextHandler))
+		Debug.Assert(t.callback(NextHandler))
 	end
 
 	local StoreEnhancedDispatchChain = NextHandler(self[StoreEnhancedDispatchChainIndex])
 	if RunTypeChecking then
-		Debug.Assert(Typer.Function(StoreEnhancedDispatchChain))
+		Debug.Assert(t.callback(StoreEnhancedDispatchChain))
 	end
 
 	self[StoreEnhancedDispatchChainIndex] = StoreEnhancedDispatchChain
@@ -167,6 +167,8 @@ function Store:SetState(...)
 	end
 end
 
+local ConnectTuple = t.tuple(t.string, t.callback)
+
 --[[**
 	Connects a function to the given string keypath.
 	@param [t:string] StringKeyPath The string path to run the function at.
@@ -175,8 +177,7 @@ end
 **--]]
 function Store:Connect(StringKeyPath: string, Function: GenericFunction): () -> ()
 	if GlobalConfiguration.Get("RunTypeChecking") then
-		Debug.Assert(Typer.Check(table.create(1, "string"), StringKeyPath, "StringKeyPath"))
-		Debug.Assert(Typer.Check(table.create(1, "function"), Function, "Function"))
+		Debug.Assert(ConnectTuple(StringKeyPath, Function))
 	end
 
 	local StoreObservers = self[StoreObserversIndex]
@@ -209,8 +210,7 @@ end
 **--]]
 function Store:Subscribe(StringKeyPath: string, Function: GenericFunction)
 	if GlobalConfiguration.Get("RunTypeChecking") then
-		Debug.Assert(Typer.Check(table.create(1, "string"), StringKeyPath, "StringKeyPath"))
-		Debug.Assert(Typer.Check(table.create(1, "function"), Function, "Function"))
+		Debug.Assert(ConnectTuple(StringKeyPath, Function))
 	end
 
 	local StoreObservers = self[StoreObserversIndex]
@@ -252,7 +252,7 @@ end
 **--]]
 function Store.new(Reducer: Reducer, InitialState: GenericTable)
 	if GlobalConfiguration.Get("RunTypeChecking") then
-		Debug.Assert(Typer.Check(table.create(1, "function"), Reducer, "Reducer"))
+		Debug.Assert(t.callback(Reducer))
 	end
 
 	local self = setmetatable({}, Store)
