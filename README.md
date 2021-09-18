@@ -106,9 +106,11 @@ end
 return TextLabel
 ```
 
-### Credits
+### Credits / External Dependencies
 
 - [Debug](https://github.com/RoStrap/Debugging/blob/master/Debug.lua) by Validark.
-- [Fmt](https://github.com/Nezuo/fmt/) by Nezuo.
-- [Rocrastinate](https://github.com/headjoe3/Rocrastinate/) by Databrain.
-- [t](https://github.com/osyrisrblx/t/) by Osyris.
+- [Enumerator](https://github.com/howmanysmall/enumerator) by HowManySmall.
+- [Fmt](https://github.com/Nezuo/fmt) by Nezuo.
+- [Janitor](https://github.com/howmanysmall/Janitor) by Validark and HowManySmall.
+- [Rocrastinate](https://github.com/headjoe3/Rocrastinate) by Databrain.
+- [t](https://github.com/osyrisrblx/t) by Osyris.
