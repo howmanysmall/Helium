@@ -108,9 +108,9 @@ return TextLabel
 
 ### Credits / External Dependencies
 
-- [Debug](https://github.com/RoStrap/Debugging/blob/master/Debug.lua) by Validark.
-- [Enumerator](https://github.com/howmanysmall/enumerator) by HowManySmall.
-- [Fmt](https://github.com/Nezuo/fmt) by Nezuo.
-- [Janitor](https://github.com/howmanysmall/Janitor) by Validark and HowManySmall.
-- [Rocrastinate](https://github.com/headjoe3/Rocrastinate) by Databrain.
-- [t](https://github.com/osyrisrblx/t) by Osyris.
+- [Debug](https://github.com/RoStrap/Debugging/blob/master/Debug.lua) by Validark, which is used for the `Debug.DirectoryToString` and the `Debug.Assert` / `Debug.Error` / `Debug.Warn` functions.
+- [Enumerator](https://github.com/howmanysmall/enumerator) by HowManySmall, which is used for the RedrawBinding.
+- [Fmt](https://github.com/Nezuo/fmt) by Nezuo, which is used for printing out tables.
+- [Janitor](https://github.com/howmanysmall/Janitor) by Validark and HowManySmall, which is used for cleanup up in Helium.
+- [Rocrastinate](https://github.com/headjoe3/Rocrastinate) by Databrain, which was used as the basis of Helium.
+- [t](https://github.com/osyrisrblx/t) by Osyris, which is used for type checking internally.
