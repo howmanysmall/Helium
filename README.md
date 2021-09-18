@@ -105,3 +105,10 @@ end
 
 return TextLabel
 ```
+
+### Credits
+
+- [Debug](https://github.com/RoStrap/Debugging/blob/master/Debug.lua) by Validark.
+- [Fmt](https://github.com/Nezuo/fmt/) by Nezuo.
+- [Rocrastinate](https://github.com/headjoe3/Rocrastinate/) by Databrain.
+- [t](https://github.com/osyrisrblx/t/) by Osyris.
