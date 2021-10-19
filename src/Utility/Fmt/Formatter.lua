@@ -1,12 +1,5 @@
 local WriteFmt = require(script.Parent.WriteFmt)
 
---- @class Formatter
---- @field _Buffer string[]
---- @field _Display string
---- @field _Indentation string
---- @field _IndentLevel number
---- @field _IsLocked boolean
---- @field _StartOfLine boolean
 local Formatter = {}
 Formatter.ClassName = "Formatter"
 Formatter.__index = Formatter

@@ -10,6 +10,9 @@ local DEFAULT_CONFIGURATION = {
 	-- Runs an assert check when QueueRedraw is called to validate that a component's RedrawBinding is correct.
 	SafeRedrawCheck = true;
 
+	-- Enables using the V2 version of CombineReducers.
+	UseCombineReducersV2 = true;
+
 	-- Enables using a switch statement for QueueRedraw. This won't be checked every QueueRedraw since performance is the goal here, only once when `Component:Constructor` is called.
 	UseSwitchStatementForQueueRedraw = true;
 }
@@ -20,10 +23,10 @@ for Key in next, DEFAULT_CONFIGURATION do
 end
 
 export type ConfigurationValues = {
-	--
 	ProfileRedraw: boolean?,
 	RunTypeChecking: boolean?,
 	SafeRedrawCheck: boolean?,
+	UseCombineReducersV2: boolean?,
 	UseSwitchStatementForQueueRedraw: boolean?,
 }
 

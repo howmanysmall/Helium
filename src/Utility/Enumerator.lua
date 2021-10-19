@@ -73,7 +73,7 @@ local function Enumerator(EnumName: string, EnumValues: EnumValues)
 			return false
 		end
 
-		for _, EnumValue in pairs(Internal) do
+		for _, EnumValue in next, Internal do
 			if EnumValue == Value then
 				return true
 			end
@@ -142,7 +142,7 @@ local function Enumerator(EnumName: string, EnumValues: EnumValues)
 			TotalEnums += 1
 		end
 	else
-		for ValueName, RawValue in pairs(EnumValues) do
+		for ValueName, RawValue in next, EnumValues do
 			assert(not BLACKLISTED_VALUES[ValueName], string.format(CANNOT_USE_ERROR, tostring(ValueName)))
 			assert(Internal[ValueName] == nil, string.format(ALREADY_USED_NAME_ERROR, ValueName, EnumName))
 			assert(RawValues[ValueName] == nil, string.format(ALREADY_USED_VALUE_ERROR, ValueName, EnumName))

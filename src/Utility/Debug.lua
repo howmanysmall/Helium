@@ -121,7 +121,7 @@ function Debug.AlphabeticalOrder(Dictionary: {[string]: any})
 	local Order = {}
 	local Length = 0
 
-	for Key in pairs(Dictionary) do
+	for Key in next, Dictionary do
 		Length += 1
 		Order[Length] = Key
 	end

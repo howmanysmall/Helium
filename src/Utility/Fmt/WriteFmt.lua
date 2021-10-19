@@ -53,7 +53,7 @@ end
 local function DebugTable(Formatter, Table)
 	Formatter:WriteRaw("{")
 
-	for Key, Value in pairs(Table) do
+	for Key, Value in next, Table do
 		Formatter:Write("[{:?}] = {:?}", Key, Value)
 
 		if next(Table, Key) ~= nil then
@@ -72,7 +72,7 @@ local function DebugTableExtended(Formatter, Table)
 
 	Formatter:WriteLineRaw("{"):Indent()
 
-	for Key, Value in pairs(Table) do
+	for Key, Value in next, Table do
 		Formatter:Write("[{:?}] = {:#?}", Key, Value)
 		if next(Table, Key) ~= nil then
 			Formatter:WriteRaw(",")

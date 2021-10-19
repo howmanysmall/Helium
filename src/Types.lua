@@ -1,4 +1,4 @@
-export type BaseAction = {Type: any}
+export type BaseAction = {Type: any} & {[any]: any}
 
 -- stylua: ignore
 export type Reducer = (
@@ -9,5 +9,7 @@ export type Reducer = (
 
 export type GenericFunction = () -> ()
 export type GenericTable = {[any]: any}
+
+export type Map<Index, Value> = {[Index]: Value}
 
 return false

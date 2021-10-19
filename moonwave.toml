@@ -1,0 +1,27 @@
+classOrder = ["Helium", "Component", "Store", "BaseComponent", "Middleware"]
+changelog = false
+gitSourceBranch = "main"
+
+[docusaurus]
+tagline = "The fastest Luau UI library"
+
+[[navbar.items]]
+href = "https://discord.gg/mhtGUS8"
+label = "Discord"
+position = "right"
+
+[home]
+enabled = true
+includeReadme = false
+
+[[home.features]]
+title = "Extremely high performance"
+description = "There is no exaggeration in the claim of fastest UI library for Roblox, as the performance is nearly equal to performance of no library whatsoever. The overhead of Helium is nearly zero, so you do not have to worry about any performance problems coming up later."
+
+[[home.features]]
+title = "Native Janitor for memory management"
+description = "No other UI library on Roblox uses Janitor natively, but Helium does. Using Janitor, you can manage your Instances, connections, and more without worrying about if they still exist in memory."
+
+[[home.features]]
+title = "Redux-like Store included"
+description = "While Roact has Rodux, it does require a separate library for using them both together. Helium's Store class was designed for Helium first, but still works without Helium components."

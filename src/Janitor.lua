@@ -8,39 +8,27 @@ local Symbol = require(script.Parent.Utility.Symbol)
 
 local IndicesReference = Symbol("IndicesReference")
 local LinkToInstanceIndex = Symbol("LinkToInstanceIndex")
+
 local METHOD_NOT_FOUND_ERROR = "Object %s doesn't have method %s, are you sure you want to add it? Traceback: %s"
 
 local Janitor = {}
 Janitor.ClassName = "Janitor"
-Janitor.__index = {}
-
-Janitor.__index.CurrentlyCleaning = true
-Janitor.__index[IndicesReference] = nil
+Janitor.CurrentlyCleaning = true
+Janitor[IndicesReference] = nil
+Janitor.__index = Janitor
 
 local TypeDefaults = {
 	["function"] = true;
 	RBXScriptConnection = "Disconnect";
 }
 
---[[**
-	Determines if the passed object is a Janitor.
-	@param [t:any] Object The object you are checking.
-	@returns [t:boolean] Whether or not the object is a Janitor.
-**--]]
 function Janitor.Is(Object: any): boolean
 	return type(Object) == "table" and getmetatable(Object) == Janitor
 end
 
 type StringOrTrue = string | boolean
 
---[[**
-	Adds an `Object` to Janitor for later cleanup, where `MethodName` is the key of the method within `Object` which should be called at cleanup time. If the `MethodName` is `true` the `Object` itself will be called instead. If passed an index it will occupy a namespace which can be `Remove()`d or overwritten. Returns the `Object`.
-	@param [t:any] Object The object you want to clean up.
-	@param [t:string|true?] MethodName The name of the method that will be used to clean up. If not passed, it will first check if the object's type exists in TypeDefaults, and if that doesn't exist, it assumes `Destroy`.
-	@param [t:any?] Index The index that can be used to clean up the object manually.
-	@returns [t:any] The object that was passed as the first argument.
-**--]]
-function Janitor.__index:Add(Object: any, MethodName: StringOrTrue?, Index: any?): any
+function Janitor:Add(Object: any, MethodName: StringOrTrue?, Index: any?): any
 	if Index then
 		self:Remove(Index)
 
@@ -62,12 +50,7 @@ function Janitor.__index:Add(Object: any, MethodName: StringOrTrue?, Index: any?
 	return Object
 end
 
---[[**
-	Cleans up whatever `Object` was set to this namespace by the 3rd parameter of `:Add()`.
-	@param [t:any] Index The index you want to remove.
-	@returns [t:Janitor] The same janitor, for chaining reasons.
-**--]]
-function Janitor.__index:Remove(Index: any): Janitor
+function Janitor:Remove(Index: any): Janitor
 	local This = self[IndicesReference]
 
 	if This then
@@ -96,12 +79,7 @@ function Janitor.__index:Remove(Index: any): Janitor
 	return self
 end
 
---[[**
-	Gets whatever object is stored with the given index, if it exists. This was added since Maid allows getting the task using `__index`.
-	@param [t:any] Index The index that the object is stored under.
-	@returns [t:any?] This will return the object if it is found, but it won't return anything if it doesn't exist.
-**--]]
-function Janitor.__index:Get(Index: any): any?
+function Janitor:Get(Index: any): any?
 	local This = self[IndicesReference]
 	if This then
 		return This[Index]
@@ -110,11 +88,7 @@ function Janitor.__index:Get(Index: any): any?
 	end
 end
 
---[[**
-	Calls each Object's `MethodName` (or calls the Object if `MethodName == true`) and removes them from the Janitor. Also clears the namespace. This function is also called when you call a Janitor Object (so it can be used as a destructor callback).
-	@returns [t:void]
-**--]]
-function Janitor.__index:Cleanup()
+function Janitor:Cleanup()
 	if not self.CurrentlyCleaning then
 		self.CurrentlyCleaning = nil
 		for Object, MethodName in pairs(self) do
@@ -144,56 +118,42 @@ function Janitor.__index:Cleanup()
 	end
 end
 
---[[**
-	Calls `:Cleanup()` and renders the Janitor unusable.
-	@returns [t:void]
-**--]]
-function Janitor.__index:Destroy()
+function Janitor:Destroy()
 	self:Cleanup()
 	table.clear(self)
 	setmetatable(self, nil)
 end
 
-Janitor.__call = Janitor.__index.Cleanup
+Janitor.__call = Janitor.Cleanup
 
---- Makes the Janitor clean up when the instance is destroyed
--- @param Instance Instance The Instance the Janitor will wait for to be Destroyed
--- @returns Disconnectable table to stop Janitor from being cleaned up upon Instance Destroy (automatically cleaned up by Janitor, btw)
--- @author Corecii
-local Disconnect = {}
-Disconnect.Connected = true
-Disconnect.__index = Disconnect
+local RbxScriptConnection = {}
+RbxScriptConnection.Connected = true
+RbxScriptConnection.__index = RbxScriptConnection
 
-function Disconnect:Disconnect()
+function RbxScriptConnection:Disconnect()
 	if self.Connected then
 		self.Connected = false
 		self.Connection:Disconnect()
 	end
 end
 
-function Disconnect._new(RBXScriptConnection: RBXScriptConnection)
+function RbxScriptConnection._new(RBXScriptConnection: RBXScriptConnection)
 	return setmetatable({
 		Connection = RBXScriptConnection;
-	}, Disconnect)
+	}, RbxScriptConnection)
 end
 
-function Disconnect:__tostring()
-	return "Disconnect<" .. tostring(self.Connected) .. ">"
+function RbxScriptConnection:__tostring()
+	return "RbxScriptConnection<" .. tostring(self.Connected) .. ">"
 end
 
-type RbxScriptConnection = typeof(Disconnect._new(game:GetPropertyChangedSignal("ClassName"):Connect(function() end)))
+type RbxScriptConnection = typeof(RbxScriptConnection._new(game:GetPropertyChangedSignal("ClassName"):Connect(function() end)))
 
---[[**
-	"Links" this Janitor to an Instance, such that the Janitor will `Cleanup` when the Instance is `Destroyed()` and garbage collected. A Janitor may only be linked to one instance at a time, unless `AllowMultiple` is true. When called with a truthy `AllowMultiple` parameter, the Janitor will "link" the Instance without overwriting any previous links, and will also not be overwritable. When called with a falsy `AllowMultiple` parameter, the Janitor will overwrite the previous link which was also called with a falsy `AllowMultiple` parameter, if applicable.
-	@param [t:Instance] Object The instance you want to link the Janitor to.
-	@param [t:boolean?] AllowMultiple Whether or not to allow multiple links on the same Janitor.
-	@returns [t:RbxScriptConnection] A pseudo RBXScriptConnection that can be disconnected to prevent the cleanup of LinkToInstance.
-**--]]
-function Janitor.__index:LinkToInstance(Object: Instance, AllowMultiple: boolean?): RbxScriptConnection
+function Janitor:LinkToInstance(Object: Instance, AllowMultiple: boolean?): RbxScriptConnection
 	local Connection
 	local IndexToUse = AllowMultiple and newproxy(false) or LinkToInstanceIndex
 	local IsNilParented = Object.Parent == nil
-	local ManualDisconnect = setmetatable({}, Disconnect)
+	local ManualDisconnect = setmetatable({}, RbxScriptConnection)
 
 	local function ChangedFunction(_DoNotUse, NewParent)
 		if ManualDisconnect.Connected then
@@ -208,7 +168,7 @@ function Janitor.__index:LinkToInstance(Object: Instance, AllowMultiple: boolean
 						self:Cleanup()
 					else
 						while IsNilParented and Connection.Connected and ManualDisconnect.Connected do
-							task.wait(0)
+							task.wait()
 						end
 
 						if ManualDisconnect.Connected and IsNilParented then
@@ -231,12 +191,7 @@ function Janitor.__index:LinkToInstance(Object: Instance, AllowMultiple: boolean
 	return self:Add(ManualDisconnect, "Disconnect", IndexToUse)
 end
 
---[[**
-	Links several instances to a janitor, which is then returned.
-	@param [t:...Instance] ... All the instances you want linked.
-	@returns [t:Janitor] A new janitor that can be used to manually disconnect all LinkToInstances.
-**--]]
-function Janitor.__index:LinkToInstances(...: Instance): Janitor
+function Janitor:LinkToInstances(...: Instance): Janitor
 	local ManualCleanup = Janitor.new()
 	for _, Object in ipairs({...}) do
 		ManualCleanup:Add(self:LinkToInstance(Object, true), "Disconnect")
@@ -245,10 +200,6 @@ function Janitor.__index:LinkToInstances(...: Instance): Janitor
 	return ManualCleanup
 end
 
---[[**
-	Instantiates a new Janitor object.
-	@returns [t:Janitor]
-**--]]
 function Janitor.new()
 	return setmetatable({
 		CurrentlyCleaning = false;
