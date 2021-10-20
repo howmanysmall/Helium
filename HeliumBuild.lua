@@ -14,7 +14,7 @@ local function print(...)
 	ffi.C.printf("%s\n", table.concat(Array, " "))
 end
 
-local PROJECT_FILES = {"build.project.json"}
+local PROJECT_FILES = {"default.project.json"}
 local PROJECT_NAMES = {"Helium"}
 
 for Index, ProjectFile in ipairs(PROJECT_FILES) do
