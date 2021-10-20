@@ -40,3 +40,8 @@ luac.out
 *.hex
 
 build
+
+*.rbxmx
+*.rbxm
+*.rbxlx
+*.rbxl
