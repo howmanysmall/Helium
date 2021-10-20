@@ -1,5 +1,5 @@
 {
-	"name": "Helium",
+	"name": "helium",
 	"globIgnorePaths": [],
 	"tree": {"$path": "src"}
 }
