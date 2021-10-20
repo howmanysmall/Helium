@@ -97,7 +97,7 @@ HttpService.HttpEnabled = HttpEnabled`}
 
 ```toml
 [dependencies]
-Helium = "howmanysmall/helium@0.1.0"
+Helium = "howmanysmall/helium@1.1.0"
 ```
 
 ## Next
