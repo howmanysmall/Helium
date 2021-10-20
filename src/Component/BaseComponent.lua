@@ -93,6 +93,30 @@ BaseComponent.__index = BaseComponent
 ]=]
 
 --[=[
+	@prop Destroyed Signal<>?
+	@within BaseComponent
+	The Destroyed signal which is called after everything in the Component is destroyed. This only exists if you explicitly state you want it in the `Component.Extend` function.
+]=]
+
+--[=[
+	@prop Destroying Signal<>?
+	@within BaseComponent
+	The Destroying signal which is called immediately after `:Destroy` is. This only exists if you explicitly state you want it in the `Component.Extend` function.
+]=]
+
+--[=[
+	@prop WillRedraw Signal<...RedrawArguments>?
+	@within BaseComponent
+	The WillRedraw signal which is called immediately before `Component:Redraw` is. This only exists if you explicitly state you want it in the `Component.Extend` function.
+]=]
+
+--[=[
+	@prop DidRedraw Signal<...RedrawArguments>?
+	@within BaseComponent
+	The DidRedraw signal which is called immediately after `Component:Redraw` is. This only exists if you explicitly state you want it in the `Component.Extend` function.
+]=]
+
+--[=[
 	The Component's Constructor function. This version is for store-less components. This should be overwritten.
 
 	```lua

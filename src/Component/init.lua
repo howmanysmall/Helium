@@ -802,14 +802,20 @@ function Component.Extend(ClassName: string, PossibleLifecycleEventsToCreate: Po
 			Constructor(self, ComponentStore, ...)
 		end
 
-		for LifecycleEventName, DoCreate in next, LifecycleEventsToCreate do
-			if DoCreate then
-				if LifecycleEventName == "Destroyed" then
-					self.Destroyed = Signal.new()
-				else
-					self[LifecycleEventName] = self.Janitor:Add(Signal.new(), "Destroy")
-				end
-			end
+		if LifecycleEventsToCreate.Destroyed then
+			self.Destroyed = Signal.new()
+		end
+
+		if LifecycleEventsToCreate.Destroying then
+			self.Destroying = Signal.new(self.Janitor)
+		end
+
+		if LifecycleEventsToCreate.DidRedraw then
+			self.DidRedraw = Signal.new(self.Janitor)
+		end
+
+		if LifecycleEventsToCreate.WillRedraw then
+			self.WillRedraw = Signal.new(self.Janitor)
 		end
 
 		self.QueueRedraw()

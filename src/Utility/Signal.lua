@@ -95,11 +95,17 @@ local Signal = {}
 Signal.ClassName = "Signal"
 Signal.__index = Signal
 
-function Signal.new()
-	return setmetatable({
+function Signal.new(Janitor)
+	local self = setmetatable({
 		_handlerListHead = false;
 		_proxyHandler = nil;
 	}, Signal)
+
+	if Janitor then
+		Janitor:Add(self, "Destroy")
+	end
+
+	return self
 end
 
 function Signal.Is(obj)
