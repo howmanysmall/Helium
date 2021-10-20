@@ -18,7 +18,7 @@ This method uses `HttpService` to install Helium.
 1. In Roblox Studio, paste the following command into your command bar.
 2. Run the following command:
 
-<textarea readonly onClick={e => e.target.select()} style={{
+<textarea readonly rows="5" onClick={e => e.target.select()} style={{
    width: "100%"
 }}>
    {`local ReplicatedStorage = game:GetService("ReplicatedStorage")
