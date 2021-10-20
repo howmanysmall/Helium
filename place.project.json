@@ -1,0 +1,16 @@
+{
+	"name": "Helium",
+	"globIgnorePaths": [],
+
+	"tree": {
+		"$className": "DataModel",
+		"ReplicatedStorage": {
+			"$className": "ReplicatedStorage",
+			"$ignoreUnknownInstances": true,
+			"Helium": {
+				"$ignoreUnknownInstances": true,
+				"$path": "src"
+			}
+		}
+	}
+}
