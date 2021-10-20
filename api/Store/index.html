@@ -1,0 +1,1494 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="generator" content="Docusaurus v2.0.0-beta.6">
+<title data-react-helmet="true">Store | Helium</title><meta data-react-helmet="true" property="og:title" content="Store | Helium"><meta data-react-helmet="true" name="twitter:card" content="summary_large_image"><meta data-react-helmet="true" name="description" content="The Store object is one of the API changes going from Rocrastinate to Helium, as it is no longer a function that returns a table and is instead a proper Lua object.
+The Store object is inspired by [Redux](https://redux.js.org/), a state management library that is often used in JavaScript web applications. Like Redux, the Store
+is where we can centralize the state of our application. It uses &quot;Actions&quot; to update the application state, and &quot;Reducers&quot; to control how the state changes with a given action.
+
+Helium&#x27;s Store is NOT equivalent to Redux or [Rodux](https://github.com/Roblox/rodux). Some major differences are as follows:
+* Helium stores must be passed as the first argument in the constructors of components that use Store objects. This means that the &quot;store&quot; a component is in is not determined by context, but by explicit argument.
+* Redux reduces actions by re-creating the entire application state. For the sake of optimization, enabled by the coupling of Helium Components with Store, Helium Store reducers are passed the functions `GetState` and `SetState`, which copy/mutate the application&#x27;s state respectively.
+* With React/Redux (or Roact/Rodux), changes to the store will immediately re-render a component. In contrast, changes in a Helium store will immediately call `QueueUpdate()`, which defers rendering changes to the next frame binding.
+
+## Actions
+
+&quot;Actions&quot; are the *only* source of information for our Helium Store. They represent information needed to change some portion of the application state, and are represented as lua objects. They are sent using `Store:Fire(Action)` or `Store:Dispatch(Action)`.
+
+Actions should typically be represented as tables, and have a `Type` property denoting what kind of action is being sent. For example:
+
+```lua
+local MyAction = {
+	Type = &quot;AddCoins&quot;;
+	Amount = 1;
+}
+
+Store:Fire(MyAction)
+```
+
+```cpp
+typedef GenericDictionary table&lt;LuaString, any&gt;;
+
+GenericDictionary MyAction = table(
+	Type: L&quot;AddCoins&quot;,
+	Amount: 1,
+);
+
+Store::Fire(MyAction);
+```
+
+_________________
+
+## Action Creators
+
+Typically, instead of creating actions directly, we can use &quot;Action Creators&quot;, which are simply functions that create actions for us with a given set of arguments. Note that these only **create the action**, and **do not dispatch them**:
+```lua
+local function AddCoins(Amount: number)
+	return {
+		Type = &quot;AddCoins&quot;;
+		Amount = Amount;
+	}
+end
+
+Store:Fire(AddCoins(1))
+```
+
+```cpp
+typedef GenericDictionary table&lt;LuaString, any&gt;;
+
+GenericDictionary AddCoins(int Amount)
+{
+	return table(
+		Type: L&quot;AddCoins&quot;,
+		Amount: Amount,
+	);
+}
+
+Store::Fire(AddCoins(1));
+```
+
+Actions can be dispatched at any time from anywhere in the application, including the middle of a Redraw().
+
+Helium actually has a built-in function used to creating this, called `MakeActionCreator`. This can be used as seen in the following code:
+
+```lua
+local AddCoins = Helium.MakeActionCreator(&quot;AddCoins&quot;, function(Amount: number)
+	return {
+		Amount = Amount;
+	}
+end)
+
+Store:Fire(AddCoins(1))
+```
+
+```cpp
+typedef GenericDictionary table&lt;LuaString, any&gt;;
+
+GenericDictionary AddCoinsAction(int Amount)
+{
+	return table(Amount: Amount);
+}
+
+void AddCoins = Helium.MakeActionCreator(L&quot;AddCoins&quot;, AddCoinsAction);
+
+Store::Fire(AddCoins(1));
+```
+
+_________________
+
+## Responding to Actions
+
+Like Redux, Helium uses &quot;Reducers&quot;, which are functions that respond to an action by modifying a certain portion of the store&#x27;s state.
+
+Reducers are given three arguments: `(Action, GetState, SetState)`.
+
+* `Action` is the action that was dispatched.
+* `GetState(...KeyPath)` is a function that gets a value in the store by nested keys.
+* `SetState(...KeyPath, Value)` is a function that sets a value in the store by nested keys.
+
+If we want to set the value of `Coins` in the store whenever an `AddCoins` action is received, we can use the following code:
+
+```lua
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == &quot;AddCoins&quot; then
+		local Coins = GetState(&quot;Coins&quot;)
+		SetState(&quot;Coins&quot;, Coins + Action.Amount)
+	end
+end
+```
+
+If you&#x27;re using the `MakeActionCreator` function, you can set it up like so:
+
+```lua
+local AddCoins = require(ReplicatedStorage.AddCoins)
+
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == AddCoins.ActionName then
+		local Coins = GetState(&quot;Coins&quot;)
+		SetState(&quot;Coins&quot;, Coins + Action.Amount)
+	end
+end
+```
+
+This code makes a few assumptions:
+
+1. There is already a value in the store named `Coins`, and that it is a number.
+2. That the action has a property named `Type`.
+3. That the action (which we&#x27;ve identified as an `AddCoins` action) has a property named `Amount`, and that it is a number.
+
+It is generally best to centralize actions or action creators in an `Actions` module, so that these assumptions can be standardized. Additionally, we need to declare the initial state of our store somewhere:
+
+```lua
+local InitialState = {
+	Coins = 0;
+}
+```
+
+Then, when we call
+
+```lua
+Store:Fire(AddCoins(1))
+```
+
+our store state should conceptually be mutated to look something like this table:
+
+```lua
+{
+	Coins = 1;
+}
+```
+
+Additionally, we can nest tables in our store structure:
+
+```lua
+local InitialState = {
+	PlayerStats = {Coins = 0};
+}
+
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == AddCoins.ActionName then
+		local Coins = GetState(&quot;PlayerStats&quot;, &quot;Coins&quot;)
+		SetState(&quot;PlayerStats&quot;, &quot;Coins&quot;, Coins + Action.Amount)
+	end
+end
+```
+
+```cpp
+GenericDictionary InitialState = table(PlayerStats: table(Coins: 0));
+
+void Reducer(GenericDictionary Action, void GetState, SetState)
+{
+	if Action.Type == AddCoins.ActionName
+	{
+		int Coins = GetState(L&quot;PlayerStats&quot;, L&quot;Coins&quot;);
+		SetState(L&quot;PlayerStats&quot;, L&quot;Coins&quot;, Coins + Action.Amount);
+	}
+}
+```
+
+In the above example, we provide an aditional argument to `GetState` and `SetState`. These are just strings representing the path of nested keys leading to the exact value we want to get/set in our store.
+
+If we kept this all in the same module, we may run into a problem when our tree becomes more complex:
+
+```lua
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == &quot;DoSomethingInASpecificDomain&quot; then
+		SetState(&quot;Path&quot;, &quot;To&quot;, &quot;Specific&quot;, &quot;Domain&quot;, Value)
+	elseif  ...  then
+		...
+	end
+end
+```
+
+```cpp
+void Reducer(GenericDictionary Action, void GetState, SetState)
+{
+	if Action.Type == L&quot;DoSomethingInASpecificDomain&quot;
+	{
+		SetState(L&quot;Path&quot;, L&quot;To&quot;, L&quot;Specific&quot;, L&quot;Domain&quot;, Action.Value);
+	} elseif ...
+	{
+		...
+	}
+}
+```
+
+This can become very verbose. It would be much simpler if we could create a reducer that just deals with playerStats, and another reducer that just deals with some other domain.
+
+To do this, you can use the `CombineReducers()` function. Let&#x27;s say we put our main reducer in a module called &quot;RootReducer&quot;, and nested reducers for playerStats underneath the root reducer:
+
+_________________
+
+### RootReducer ModuleScript
+
+```lua
+local ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;)
+local Helium = require(ReplicatedStorage.Helium)
+local PlayerStats = require(script.PlayerStats)
+
+local Reducer = Helium.CombineReducers({
+	PlayerStats = PlayerStats.Reducer;
+})
+
+local InitialState = {
+	PlayerStats = PlayerStats.InitialState;
+}
+
+return {
+	Reducer = Reducer;
+	InitialState = InitialState;
+}
+```
+
+### RootReducer.PlayerStats ModuleScript
+
+```lua
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == &quot;AddCoins&quot; then
+		local Coins = GetState(&quot;Coins&quot;)
+		SetState(&quot;Coins&quot;, Coins + Action.Amount)
+	end
+end
+
+local InitialState = {Coins = 0;}
+return {
+	Reducer = Reducer;
+	InitialState = InitialState;
+}
+```
+
+If we wanted to, we could subdivide this even further by making a reducer for coins, and use `CombineReducers()` in the PlayerStats module instead. The &quot;coins&quot; module would then look something like this:
+
+### RootReducer.PlayerStats.Coins ModuleScript
+
+```lua
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == &quot;AddCoins&quot; then
+		SetState(GetState() + Action.Amount)
+	end
+end
+
+local InitialState = 0
+
+return {
+	Reducer = Reducer;
+	InitialState = InitialState;
+}
+```
+
+Now that we&#x27;ve separated the concerns of our reducers and actions, how do we actually create the store and have it interact with our application?
+
+Helium uses the function `Store.new(Reducer, InitialState)` for this.
+Putting it all together, we can create a very simple store that reduces a single value of &quot;Coins&quot;
+
+```lua
+local ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;)
+local Helium = require(ReplicatedStorage.Helium)
+
+-- Typically this would be put in a separate module called &quot;Actions&quot;
+local AddCoins = Helium.MakeActionCreator(&quot;AddCoins&quot;, function(Amount: number)
+	return {
+		Amount = Amount;
+	}
+end)
+
+-- Typically this would be put in a separate module called &quot;Reducer&quot; or &quot;RootReducer&quot;
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == AddCoins.ActionName then
+		SetState(GetState() + Action.Amount)
+	end
+end
+
+local InitialState = 0
+local CoinsStore = Helium.Store.new(Reducer, InitialState) -- You can also do Helium.CreateStore(Reducer, InitialState)
+
+print(CoinsStore:GetState()) -- 0
+
+CoinsStore:Fire(AddCoins(10))
+print(CoinsStore:GetState()) -- 10
+
+CoinsStore:Dispatch(AddCoins(10)) -- Dispatch is also valid
+print(CoinsStore:GetState()) -- 20
+```
+
+```cpp
+typedef GenericDictionary table&lt;LuaString, any&gt;;
+RbxInstance ReplicatedStorage = game::GetService @ ReplicatedStorage;
+GenericDictionary Helium = require(ReplicatedStorage.Helium);
+
+const int INITIAL_STATE = 0;
+
+// Typically this would be put in a separate module called &quot;Actions&quot;
+GenericDictionary AddCoinsFunction(int Amount)
+{
+	return table(Amount: Amount);
+}
+
+void AddCoins = Helium.MakeActionCreator(L&quot;AddCoins&quot;, AddCoinsFunction);
+
+// Typically this would be put in a separate module called &quot;Reducer&quot; or &quot;RootReducer&quot;
+void Reducer(GenericDictionary Action, void GetState, SetState)
+{
+	if Action.Type == AddCoins.ActionName
+	{
+		SetState(GetState() + Action.Amount);
+	}
+}
+
+entry void Main(void)
+{
+	GenericDictionary CoinsStore = Helium.Store.new(Reducer, INITIAL_STATE); // You can also do Helium.CreateStore(Reducer, InitialState)
+	print(CoinsStore::GetState()); // 0
+
+	CoinsStore::Fire(AddCoins(10));
+	print(CoinsStore::GetState()); // 10
+
+	CoinsStore::Dispatch(AddCoins(10)); // Dispatch is also valid
+	print(CoinsStore::GetState()); // 20
+}
+```"><meta data-react-helmet="true" property="og:description" content="The Store object is one of the API changes going from Rocrastinate to Helium, as it is no longer a function that returns a table and is instead a proper Lua object.
+The Store object is inspired by [Redux](https://redux.js.org/), a state management library that is often used in JavaScript web applications. Like Redux, the Store
+is where we can centralize the state of our application. It uses &quot;Actions&quot; to update the application state, and &quot;Reducers&quot; to control how the state changes with a given action.
+
+Helium&#x27;s Store is NOT equivalent to Redux or [Rodux](https://github.com/Roblox/rodux). Some major differences are as follows:
+* Helium stores must be passed as the first argument in the constructors of components that use Store objects. This means that the &quot;store&quot; a component is in is not determined by context, but by explicit argument.
+* Redux reduces actions by re-creating the entire application state. For the sake of optimization, enabled by the coupling of Helium Components with Store, Helium Store reducers are passed the functions `GetState` and `SetState`, which copy/mutate the application&#x27;s state respectively.
+* With React/Redux (or Roact/Rodux), changes to the store will immediately re-render a component. In contrast, changes in a Helium store will immediately call `QueueUpdate()`, which defers rendering changes to the next frame binding.
+
+## Actions
+
+&quot;Actions&quot; are the *only* source of information for our Helium Store. They represent information needed to change some portion of the application state, and are represented as lua objects. They are sent using `Store:Fire(Action)` or `Store:Dispatch(Action)`.
+
+Actions should typically be represented as tables, and have a `Type` property denoting what kind of action is being sent. For example:
+
+```lua
+local MyAction = {
+	Type = &quot;AddCoins&quot;;
+	Amount = 1;
+}
+
+Store:Fire(MyAction)
+```
+
+```cpp
+typedef GenericDictionary table&lt;LuaString, any&gt;;
+
+GenericDictionary MyAction = table(
+	Type: L&quot;AddCoins&quot;,
+	Amount: 1,
+);
+
+Store::Fire(MyAction);
+```
+
+_________________
+
+## Action Creators
+
+Typically, instead of creating actions directly, we can use &quot;Action Creators&quot;, which are simply functions that create actions for us with a given set of arguments. Note that these only **create the action**, and **do not dispatch them**:
+```lua
+local function AddCoins(Amount: number)
+	return {
+		Type = &quot;AddCoins&quot;;
+		Amount = Amount;
+	}
+end
+
+Store:Fire(AddCoins(1))
+```
+
+```cpp
+typedef GenericDictionary table&lt;LuaString, any&gt;;
+
+GenericDictionary AddCoins(int Amount)
+{
+	return table(
+		Type: L&quot;AddCoins&quot;,
+		Amount: Amount,
+	);
+}
+
+Store::Fire(AddCoins(1));
+```
+
+Actions can be dispatched at any time from anywhere in the application, including the middle of a Redraw().
+
+Helium actually has a built-in function used to creating this, called `MakeActionCreator`. This can be used as seen in the following code:
+
+```lua
+local AddCoins = Helium.MakeActionCreator(&quot;AddCoins&quot;, function(Amount: number)
+	return {
+		Amount = Amount;
+	}
+end)
+
+Store:Fire(AddCoins(1))
+```
+
+```cpp
+typedef GenericDictionary table&lt;LuaString, any&gt;;
+
+GenericDictionary AddCoinsAction(int Amount)
+{
+	return table(Amount: Amount);
+}
+
+void AddCoins = Helium.MakeActionCreator(L&quot;AddCoins&quot;, AddCoinsAction);
+
+Store::Fire(AddCoins(1));
+```
+
+_________________
+
+## Responding to Actions
+
+Like Redux, Helium uses &quot;Reducers&quot;, which are functions that respond to an action by modifying a certain portion of the store&#x27;s state.
+
+Reducers are given three arguments: `(Action, GetState, SetState)`.
+
+* `Action` is the action that was dispatched.
+* `GetState(...KeyPath)` is a function that gets a value in the store by nested keys.
+* `SetState(...KeyPath, Value)` is a function that sets a value in the store by nested keys.
+
+If we want to set the value of `Coins` in the store whenever an `AddCoins` action is received, we can use the following code:
+
+```lua
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == &quot;AddCoins&quot; then
+		local Coins = GetState(&quot;Coins&quot;)
+		SetState(&quot;Coins&quot;, Coins + Action.Amount)
+	end
+end
+```
+
+If you&#x27;re using the `MakeActionCreator` function, you can set it up like so:
+
+```lua
+local AddCoins = require(ReplicatedStorage.AddCoins)
+
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == AddCoins.ActionName then
+		local Coins = GetState(&quot;Coins&quot;)
+		SetState(&quot;Coins&quot;, Coins + Action.Amount)
+	end
+end
+```
+
+This code makes a few assumptions:
+
+1. There is already a value in the store named `Coins`, and that it is a number.
+2. That the action has a property named `Type`.
+3. That the action (which we&#x27;ve identified as an `AddCoins` action) has a property named `Amount`, and that it is a number.
+
+It is generally best to centralize actions or action creators in an `Actions` module, so that these assumptions can be standardized. Additionally, we need to declare the initial state of our store somewhere:
+
+```lua
+local InitialState = {
+	Coins = 0;
+}
+```
+
+Then, when we call
+
+```lua
+Store:Fire(AddCoins(1))
+```
+
+our store state should conceptually be mutated to look something like this table:
+
+```lua
+{
+	Coins = 1;
+}
+```
+
+Additionally, we can nest tables in our store structure:
+
+```lua
+local InitialState = {
+	PlayerStats = {Coins = 0};
+}
+
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == AddCoins.ActionName then
+		local Coins = GetState(&quot;PlayerStats&quot;, &quot;Coins&quot;)
+		SetState(&quot;PlayerStats&quot;, &quot;Coins&quot;, Coins + Action.Amount)
+	end
+end
+```
+
+```cpp
+GenericDictionary InitialState = table(PlayerStats: table(Coins: 0));
+
+void Reducer(GenericDictionary Action, void GetState, SetState)
+{
+	if Action.Type == AddCoins.ActionName
+	{
+		int Coins = GetState(L&quot;PlayerStats&quot;, L&quot;Coins&quot;);
+		SetState(L&quot;PlayerStats&quot;, L&quot;Coins&quot;, Coins + Action.Amount);
+	}
+}
+```
+
+In the above example, we provide an aditional argument to `GetState` and `SetState`. These are just strings representing the path of nested keys leading to the exact value we want to get/set in our store.
+
+If we kept this all in the same module, we may run into a problem when our tree becomes more complex:
+
+```lua
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == &quot;DoSomethingInASpecificDomain&quot; then
+		SetState(&quot;Path&quot;, &quot;To&quot;, &quot;Specific&quot;, &quot;Domain&quot;, Value)
+	elseif  ...  then
+		...
+	end
+end
+```
+
+```cpp
+void Reducer(GenericDictionary Action, void GetState, SetState)
+{
+	if Action.Type == L&quot;DoSomethingInASpecificDomain&quot;
+	{
+		SetState(L&quot;Path&quot;, L&quot;To&quot;, L&quot;Specific&quot;, L&quot;Domain&quot;, Action.Value);
+	} elseif ...
+	{
+		...
+	}
+}
+```
+
+This can become very verbose. It would be much simpler if we could create a reducer that just deals with playerStats, and another reducer that just deals with some other domain.
+
+To do this, you can use the `CombineReducers()` function. Let&#x27;s say we put our main reducer in a module called &quot;RootReducer&quot;, and nested reducers for playerStats underneath the root reducer:
+
+_________________
+
+### RootReducer ModuleScript
+
+```lua
+local ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;)
+local Helium = require(ReplicatedStorage.Helium)
+local PlayerStats = require(script.PlayerStats)
+
+local Reducer = Helium.CombineReducers({
+	PlayerStats = PlayerStats.Reducer;
+})
+
+local InitialState = {
+	PlayerStats = PlayerStats.InitialState;
+}
+
+return {
+	Reducer = Reducer;
+	InitialState = InitialState;
+}
+```
+
+### RootReducer.PlayerStats ModuleScript
+
+```lua
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == &quot;AddCoins&quot; then
+		local Coins = GetState(&quot;Coins&quot;)
+		SetState(&quot;Coins&quot;, Coins + Action.Amount)
+	end
+end
+
+local InitialState = {Coins = 0;}
+return {
+	Reducer = Reducer;
+	InitialState = InitialState;
+}
+```
+
+If we wanted to, we could subdivide this even further by making a reducer for coins, and use `CombineReducers()` in the PlayerStats module instead. The &quot;coins&quot; module would then look something like this:
+
+### RootReducer.PlayerStats.Coins ModuleScript
+
+```lua
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == &quot;AddCoins&quot; then
+		SetState(GetState() + Action.Amount)
+	end
+end
+
+local InitialState = 0
+
+return {
+	Reducer = Reducer;
+	InitialState = InitialState;
+}
+```
+
+Now that we&#x27;ve separated the concerns of our reducers and actions, how do we actually create the store and have it interact with our application?
+
+Helium uses the function `Store.new(Reducer, InitialState)` for this.
+Putting it all together, we can create a very simple store that reduces a single value of &quot;Coins&quot;
+
+```lua
+local ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;)
+local Helium = require(ReplicatedStorage.Helium)
+
+-- Typically this would be put in a separate module called &quot;Actions&quot;
+local AddCoins = Helium.MakeActionCreator(&quot;AddCoins&quot;, function(Amount: number)
+	return {
+		Amount = Amount;
+	}
+end)
+
+-- Typically this would be put in a separate module called &quot;Reducer&quot; or &quot;RootReducer&quot;
+local function Reducer(Action, GetState, SetState)
+	if Action.Type == AddCoins.ActionName then
+		SetState(GetState() + Action.Amount)
+	end
+end
+
+local InitialState = 0
+local CoinsStore = Helium.Store.new(Reducer, InitialState) -- You can also do Helium.CreateStore(Reducer, InitialState)
+
+print(CoinsStore:GetState()) -- 0
+
+CoinsStore:Fire(AddCoins(10))
+print(CoinsStore:GetState()) -- 10
+
+CoinsStore:Dispatch(AddCoins(10)) -- Dispatch is also valid
+print(CoinsStore:GetState()) -- 20
+```
+
+```cpp
+typedef GenericDictionary table&lt;LuaString, any&gt;;
+RbxInstance ReplicatedStorage = game::GetService @ ReplicatedStorage;
+GenericDictionary Helium = require(ReplicatedStorage.Helium);
+
+const int INITIAL_STATE = 0;
+
+// Typically this would be put in a separate module called &quot;Actions&quot;
+GenericDictionary AddCoinsFunction(int Amount)
+{
+	return table(Amount: Amount);
+}
+
+void AddCoins = Helium.MakeActionCreator(L&quot;AddCoins&quot;, AddCoinsFunction);
+
+// Typically this would be put in a separate module called &quot;Reducer&quot; or &quot;RootReducer&quot;
+void Reducer(GenericDictionary Action, void GetState, SetState)
+{
+	if Action.Type == AddCoins.ActionName
+	{
+		SetState(GetState() + Action.Amount);
+	}
+}
+
+entry void Main(void)
+{
+	GenericDictionary CoinsStore = Helium.Store.new(Reducer, INITIAL_STATE); // You can also do Helium.CreateStore(Reducer, InitialState)
+	print(CoinsStore::GetState()); // 0
+
+	CoinsStore::Fire(AddCoins(10));
+	print(CoinsStore::GetState()); // 10
+
+	CoinsStore::Dispatch(AddCoins(10)); // Dispatch is also valid
+	print(CoinsStore::GetState()); // 20
+}
+```"><meta data-react-helmet="true" property="og:url" content="https://howmanysmall.github.io/Helium/api/Store"><meta data-react-helmet="true" name="docusaurus_locale" content="en"><meta data-react-helmet="true" name="docusaurus_tag" content="default"><link data-react-helmet="true" rel="canonical" href="https://howmanysmall.github.io/Helium/api/Store"><link data-react-helmet="true" rel="alternate" href="https://howmanysmall.github.io/Helium/api/Store" hreflang="en"><link data-react-helmet="true" rel="alternate" href="https://howmanysmall.github.io/Helium/api/Store" hreflang="x-default"><link rel="stylesheet" href="/Helium/assets/css/styles.3c0ff9e9.css">
+<link rel="preload" href="/Helium/assets/js/runtime~main.451f22ca.js" as="script">
+<link rel="preload" href="/Helium/assets/js/main.136d6786.js" as="script">
+</head>
+<body>
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){var t=null;try{t=localStorage.getItem("theme")}catch(t){}return t}();t(null!==e?e:"light")}()</script><div id="__docusaurus">
+<div><a href="#" class="skipToContent_1oUP">Skip to main content</a></div><nav class="navbar navbar--fixed-top"><div class="navbar__inner"><div class="navbar__items"><button aria-label="Navigation bar toggle" class="navbar__toggle clean-btn" type="button" tabindex="0"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/Helium/"><b class="navbar__title">Helium</b></a><a class="navbar__item navbar__link" href="/Helium/docs/intro">Docs</a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/Helium/api/">API</a></div><div class="navbar__items navbar__items--right"><a href="https://discord.gg/mhtGUS8" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link"><span>Discord<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_3J9K"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></span></a><a href="https://github.com/howmanysmall/Helium" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link"><span>GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_3J9K"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></span></a><div class="react-toggle toggle_3Zt9 react-toggle--disabled"><div class="react-toggle-track" role="button" tabindex="-1"><div class="react-toggle-track-check"><span class="toggle_71bT">🌜</span></div><div class="react-toggle-track-x"><span class="toggle_71bT">🌞</span></div><div class="react-toggle-thumb"></div></div><input type="checkbox" class="react-toggle-screenreader-only" aria-label="Switch between dark and light mode"></div><div class="navbar__search"><span aria-label="expand searchbar" role="button" class="search-icon" tabindex="0"></span><input type="search" id="search_input_react" placeholder="Press S to Search..." aria-label="Search" class="navbar__search-input search-bar"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div class="main-wrapper docPageContainer_2Kz0"><div class="docPage_1bdk"><div class="docSidebarContainer_1ykS"><div class="sidebar_15mo"><nav class="menu thin-scrollbar menu_Bmed menuWithAnnouncementBar_2WvA"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/Helium">​Helium</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/Component">​Component</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link menu__link--active" aria-current="page" href="/Helium/api/Store">​Store</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/BaseComponent">​Base​Component</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/Middleware">​Middleware</a></li></ul></nav><button type="button" title="Collapse sidebar" aria-label="Collapse sidebar" class="button button--secondary button--outline collapseSidebarButton_1CGd"><svg width="20" height="20" aria-hidden="true" class="collapseSidebarButtonIcon_3E-R"><g fill="#7a7a7a"><path d="M9.992 10.023c0 .2-.062.399-.172.547l-4.996 7.492a.982.982 0 01-.828.454H1c-.55 0-1-.453-1-1 0-.2.059-.403.168-.551l4.629-6.942L.168 3.078A.939.939 0 010 2.528c0-.548.45-.997 1-.997h2.996c.352 0 .649.18.828.45L9.82 9.472c.11.148.172.347.172.55zm0 0"></path><path d="M19.98 10.023c0 .2-.058.399-.168.547l-4.996 7.492a.987.987 0 01-.828.454h-3c-.547 0-.996-.453-.996-1 0-.2.059-.403.168-.551l4.625-6.942-4.625-6.945a.939.939 0 01-.168-.55 1 1 0 01.996-.997h3c.348 0 .649.18.828.45l4.996 7.492c.11.148.168.347.168.55zm0 0"></path></g></svg></button></div></div><main class="docMainContainer_28N5"><div class="container padding-vert--lg"><div class="row"><div class="col docItemCol_3WPG"><div class="docItemContainer_3XDu"><article><div class="member_qHIL markdown"><div class="tocCollapsible_1PrD theme-doc-toc-mobile tocMobile_3ryM"><button type="button" class="clean-btn tocCollapsibleButton_2O1e">On this page</button></div><header><h1 class="docTitle_1ddc" style="text-decoration:none"><span style="display:inline-block">Store</span></h1><div class="luaClassTags_2Zrs"></div><div>
+<p>
+  The Store object is one of the API changes going from Rocrastinate to Helium, as it is no longer a function that returns a table and is instead a proper Lua object.
+  The Store object is inspired by <a href="https://redux.js.org/" target="_blank">Redux</a>, a state management library that is often used in JavaScript web applications. Like Redux, the Store
+  is where we can centralize the state of our application. It uses "Actions" to update the application state, and "Reducers" to control how the state changes with a given action.
+</p>
+<p>Helium's Store is NOT equivalent to Redux or <a href="https://github.com/Roblox/rodux" target="_blank">Rodux</a>. Some major differences are as follows:</p>
+<ul>
+  <li>Helium stores must be passed as the first argument in the constructors of components that use Store objects. This means that the "store" a component is in is not determined by context, but by explicit argument.</li>
+  <li>Redux reduces actions by re-creating the entire application state. For the sake of optimization, enabled by the coupling of Helium Components with Store, Helium Store reducers are passed the functions <code>GetState</code> and <code>SetState</code>, which copy/mutate the application's state respectively.</li>
+  <li>With React/Redux (or Roact/Rodux), changes to the store will immediately re-render a component. In contrast, changes in a Helium store will immediately call <code>QueueUpdate()</code>, which defers rendering changes to the next frame binding.</li>
+</ul>
+<h2>Actions</h2>
+<p>"Actions" are the <em>only</em> source of information for our Helium Store. They represent information needed to change some portion of the application state, and are represented as lua objects. They are sent using <code>Store:Fire(Action)</code> or <code>Store:Dispatch(Action)</code>.</p>
+<p>Actions should typically be represented as tables, and have a <code>Type</code> property denoting what kind of action is being sent. For example:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> MyAction <span class="token operator">=</span> <span class="token punctuation">{</span>
+	Type <span class="token operator">=</span> <span class="token string">"AddCoins"</span><span class="token punctuation">;</span>
+	Amount <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span>MyAction<span class="token punctuation">)</span>
+</code></pre>
+<pre class="language-cpp"><code class="language-cpp"><span class="token keyword">typedef</span> GenericDictionary table<span class="token operator">&#x3C;</span>LuaString<span class="token punctuation">,</span> any<span class="token operator">></span><span class="token punctuation">;</span>
+
+GenericDictionary MyAction <span class="token operator">=</span> <span class="token function">table</span><span class="token punctuation">(</span>
+	Type<span class="token operator">:</span> L<span class="token string">"AddCoins"</span><span class="token punctuation">,</span>
+	Amount<span class="token operator">:</span> <span class="token number">1</span><span class="token punctuation">,</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token class-name">Store</span><span class="token double-colon punctuation">::</span><span class="token function">Fire</span><span class="token punctuation">(</span>MyAction<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<hr>
+<h2>Action Creators</h2>
+<p>Typically, instead of creating actions directly, we can use "Action Creators", which are simply functions that create actions for us with a given set of arguments. Note that these only <strong>create the action</strong>, and <strong>do not dispatch them</strong>:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">AddCoins</span><span class="token punctuation">(</span>Amount<span class="token punctuation">:</span> number<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>
+		Type <span class="token operator">=</span> <span class="token string">"AddCoins"</span><span class="token punctuation">;</span>
+		Amount <span class="token operator">=</span> Amount<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token keyword">end</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre>
+<pre class="language-cpp"><code class="language-cpp"><span class="token keyword">typedef</span> GenericDictionary table<span class="token operator">&#x3C;</span>LuaString<span class="token punctuation">,</span> any<span class="token operator">></span><span class="token punctuation">;</span>
+
+GenericDictionary <span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token keyword">int</span> Amount<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">return</span> <span class="token function">table</span><span class="token punctuation">(</span>
+		Type<span class="token operator">:</span> L<span class="token string">"AddCoins"</span><span class="token punctuation">,</span>
+		Amount<span class="token operator">:</span> Amount<span class="token punctuation">,</span>
+	<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token class-name">Store</span><span class="token double-colon punctuation">::</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<p>Actions can be dispatched at any time from anywhere in the application, including the middle of a Redraw().</p>
+<p>Helium actually has a built-in function used to creating this, called <code>MakeActionCreator</code>. This can be used as seen in the following code:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> AddCoins <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"AddCoins"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>Amount<span class="token punctuation">:</span> number<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>
+		Amount <span class="token operator">=</span> Amount<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre>
+<pre class="language-cpp"><code class="language-cpp"><span class="token keyword">typedef</span> GenericDictionary table<span class="token operator">&#x3C;</span>LuaString<span class="token punctuation">,</span> any<span class="token operator">></span><span class="token punctuation">;</span>
+
+GenericDictionary <span class="token function">AddCoinsAction</span><span class="token punctuation">(</span><span class="token keyword">int</span> Amount<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">return</span> <span class="token function">table</span><span class="token punctuation">(</span>Amount<span class="token operator">:</span> Amount<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">void</span> AddCoins <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span>L<span class="token string">"AddCoins"</span><span class="token punctuation">,</span> AddCoinsAction<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token class-name">Store</span><span class="token double-colon punctuation">::</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre>
+<hr>
+<h2>Responding to Actions</h2>
+<p>Like Redux, Helium uses "Reducers", which are functions that respond to an action by modifying a certain portion of the store's state.</p>
+<p>Reducers are given three arguments: <code>(Action, GetState, SetState)</code>.</p>
+<ul>
+  <li><code>Action</code> is the action that was dispatched.</li>
+  <li><code>GetState(...KeyPath)</code> is a function that gets a value in the store by nested keys.</li>
+  <li><code>SetState(...KeyPath, Value)</code> is a function that sets a value in the store by nested keys.</li>
+</ul>
+<p>If we want to set the value of <code>Coins</code> in the store whenever an <code>AddCoins</code> action is received, we can use the following code:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> <span class="token string">"AddCoins"</span> <span class="token keyword">then</span>
+		<span class="token keyword">local</span> Coins <span class="token operator">=</span> <span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"Coins"</span><span class="token punctuation">)</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"Coins"</span><span class="token punctuation">,</span> Coins <span class="token operator">+</span> Action<span class="token punctuation">.</span>Amount<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+</code></pre>
+<p>If you're using the <code>MakeActionCreator</code> function, you can set it up like so:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> AddCoins <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>AddCoins<span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> AddCoins<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token keyword">local</span> Coins <span class="token operator">=</span> <span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"Coins"</span><span class="token punctuation">)</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"Coins"</span><span class="token punctuation">,</span> Coins <span class="token operator">+</span> Action<span class="token punctuation">.</span>Amount<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+</code></pre>
+<p>This code makes a few assumptions:</p>
+<ol>
+  <li>There is already a value in the store named <code>Coins</code>, and that it is a number.</li>
+  <li>That the action has a property named <code>Type</code>.</li>
+  <li>That the action (which we've identified as an <code>AddCoins</code> action) has a property named <code>Amount</code>, and that it is a number.</li>
+</ol>
+<p>It is generally best to centralize actions or action creators in an <code>Actions</code> module, so that these assumptions can be standardized. Additionally, we need to declare the initial state of our store somewhere:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> InitialState <span class="token operator">=</span> <span class="token punctuation">{</span>
+	Coins <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>Then, when we call</p>
+<pre class="language-lua"><code class="language-lua">Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre>
+<p>our store state should conceptually be mutated to look something like this table:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token punctuation">{</span>
+	Coins <span class="token operator">=</span> <span class="token number">1</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>Additionally, we can nest tables in our store structure:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> InitialState <span class="token operator">=</span> <span class="token punctuation">{</span>
+	PlayerStats <span class="token operator">=</span> <span class="token punctuation">{</span>Coins <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> AddCoins<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token keyword">local</span> Coins <span class="token operator">=</span> <span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"PlayerStats"</span><span class="token punctuation">,</span> <span class="token string">"Coins"</span><span class="token punctuation">)</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"PlayerStats"</span><span class="token punctuation">,</span> <span class="token string">"Coins"</span><span class="token punctuation">,</span> Coins <span class="token operator">+</span> Action<span class="token punctuation">.</span>Amount<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+</code></pre>
+<pre class="language-cpp"><code class="language-cpp">GenericDictionary InitialState <span class="token operator">=</span> <span class="token function">table</span><span class="token punctuation">(</span>PlayerStats<span class="token operator">:</span> <span class="token function">table</span><span class="token punctuation">(</span>Coins<span class="token operator">:</span> <span class="token number">0</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">void</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>GenericDictionary Action<span class="token punctuation">,</span> <span class="token keyword">void</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> AddCoins<span class="token punctuation">.</span>ActionName
+	<span class="token punctuation">{</span>
+		<span class="token keyword">int</span> Coins <span class="token operator">=</span> <span class="token function">GetState</span><span class="token punctuation">(</span>L<span class="token string">"PlayerStats"</span><span class="token punctuation">,</span> L<span class="token string">"Coins"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span>L<span class="token string">"PlayerStats"</span><span class="token punctuation">,</span> L<span class="token string">"Coins"</span><span class="token punctuation">,</span> Coins <span class="token operator">+</span> Action<span class="token punctuation">.</span>Amount<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>In the above example, we provide an aditional argument to <code>GetState</code> and <code>SetState</code>. These are just strings representing the path of nested keys leading to the exact value we want to get/set in our store.</p>
+<p>If we kept this all in the same module, we may run into a problem when our tree becomes more complex:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> <span class="token string">"DoSomethingInASpecificDomain"</span> <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"Path"</span><span class="token punctuation">,</span> <span class="token string">"To"</span><span class="token punctuation">,</span> <span class="token string">"Specific"</span><span class="token punctuation">,</span> <span class="token string">"Domain"</span><span class="token punctuation">,</span> Value<span class="token punctuation">)</span>
+	<span class="token keyword">elseif</span>  <span class="token punctuation">...</span>  <span class="token keyword">then</span>
+		<span class="token punctuation">...</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+</code></pre>
+<pre class="language-cpp"><code class="language-cpp"><span class="token keyword">void</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>GenericDictionary Action<span class="token punctuation">,</span> <span class="token keyword">void</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> L<span class="token string">"DoSomethingInASpecificDomain"</span>
+	<span class="token punctuation">{</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span>L<span class="token string">"Path"</span><span class="token punctuation">,</span> L<span class="token string">"To"</span><span class="token punctuation">,</span> L<span class="token string">"Specific"</span><span class="token punctuation">,</span> L<span class="token string">"Domain"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span> elseif <span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+	<span class="token punctuation">{</span>
+		<span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span>
+	<span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>This can become very verbose. It would be much simpler if we could create a reducer that just deals with playerStats, and another reducer that just deals with some other domain.</p>
+<p>To do this, you can use the <code>CombineReducers()</code> function. Let's say we put our main reducer in a module called "RootReducer", and nested reducers for playerStats underneath the root reducer:</p>
+<hr>
+<h3>RootReducer ModuleScript</h3>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> ReplicatedStorage <span class="token operator">=</span> game<span class="token punctuation">:</span><span class="token function">GetService</span><span class="token punctuation">(</span><span class="token string">"ReplicatedStorage"</span><span class="token punctuation">)</span>
+<span class="token keyword">local</span> Helium <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>Helium<span class="token punctuation">)</span>
+<span class="token keyword">local</span> PlayerStats <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>script<span class="token punctuation">.</span>PlayerStats<span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Reducer <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">CombineReducers</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+	PlayerStats <span class="token operator">=</span> PlayerStats<span class="token punctuation">.</span>Reducer<span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> InitialState <span class="token operator">=</span> <span class="token punctuation">{</span>
+	PlayerStats <span class="token operator">=</span> PlayerStats<span class="token punctuation">.</span>InitialState<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">return</span> <span class="token punctuation">{</span>
+	Reducer <span class="token operator">=</span> Reducer<span class="token punctuation">;</span>
+	InitialState <span class="token operator">=</span> InitialState<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<h3>RootReducer.PlayerStats ModuleScript</h3>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> <span class="token string">"AddCoins"</span> <span class="token keyword">then</span>
+		<span class="token keyword">local</span> Coins <span class="token operator">=</span> <span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"Coins"</span><span class="token punctuation">)</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"Coins"</span><span class="token punctuation">,</span> Coins <span class="token operator">+</span> Action<span class="token punctuation">.</span>Amount<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> InitialState <span class="token operator">=</span> <span class="token punctuation">{</span>Coins <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span><span class="token punctuation">}</span>
+<span class="token keyword">return</span> <span class="token punctuation">{</span>
+	Reducer <span class="token operator">=</span> Reducer<span class="token punctuation">;</span>
+	InitialState <span class="token operator">=</span> InitialState<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>If we wanted to, we could subdivide this even further by making a reducer for coins, and use <code>CombineReducers()</code> in the PlayerStats module instead. The "coins" module would then look something like this:</p>
+<h3>RootReducer.PlayerStats.Coins ModuleScript</h3>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> <span class="token string">"AddCoins"</span> <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">+</span> Action<span class="token punctuation">.</span>Amount<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> InitialState <span class="token operator">=</span> <span class="token number">0</span>
+
+<span class="token keyword">return</span> <span class="token punctuation">{</span>
+	Reducer <span class="token operator">=</span> Reducer<span class="token punctuation">;</span>
+	InitialState <span class="token operator">=</span> InitialState<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>Now that we've separated the concerns of our reducers and actions, how do we actually create the store and have it interact with our application?</p>
+<p>
+  Helium uses the function <code>Store.new(Reducer, InitialState)</code> for this.
+  Putting it all together, we can create a very simple store that reduces a single value of "Coins"
+</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> ReplicatedStorage <span class="token operator">=</span> game<span class="token punctuation">:</span><span class="token function">GetService</span><span class="token punctuation">(</span><span class="token string">"ReplicatedStorage"</span><span class="token punctuation">)</span>
+<span class="token keyword">local</span> Helium <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>Helium<span class="token punctuation">)</span>
+
+<span class="token comment">-- Typically this would be put in a separate module called "Actions"</span>
+<span class="token keyword">local</span> AddCoins <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"AddCoins"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>Amount<span class="token punctuation">:</span> number<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>
+		Amount <span class="token operator">=</span> Amount<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+<span class="token comment">-- Typically this would be put in a separate module called "Reducer" or "RootReducer"</span>
+<span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> AddCoins<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">+</span> Action<span class="token punctuation">.</span>Amount<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> InitialState <span class="token operator">=</span> <span class="token number">0</span>
+<span class="token keyword">local</span> CoinsStore <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span>Reducer<span class="token punctuation">,</span> InitialState<span class="token punctuation">)</span> <span class="token comment">-- You can also do Helium.CreateStore(Reducer, InitialState)</span>
+
+<span class="token function">print</span><span class="token punctuation">(</span>CoinsStore<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- 0</span>
+
+CoinsStore<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token function">print</span><span class="token punctuation">(</span>CoinsStore<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- 10</span>
+
+CoinsStore<span class="token punctuation">:</span><span class="token function">Dispatch</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- Dispatch is also valid</span>
+<span class="token function">print</span><span class="token punctuation">(</span>CoinsStore<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- 20</span>
+</code></pre>
+<pre class="language-cpp"><code class="language-cpp"><span class="token keyword">typedef</span> GenericDictionary table<span class="token operator">&#x3C;</span>LuaString<span class="token punctuation">,</span> any<span class="token operator">></span><span class="token punctuation">;</span>
+RbxInstance ReplicatedStorage <span class="token operator">=</span> game<span class="token double-colon punctuation">::</span>GetService @ ReplicatedStorage<span class="token punctuation">;</span>
+GenericDictionary Helium <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>Helium<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> <span class="token keyword">int</span> INITIAL_STATE <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">;</span>
+
+<span class="token comment">// Typically this would be put in a separate module called "Actions"</span>
+GenericDictionary <span class="token function">AddCoinsFunction</span><span class="token punctuation">(</span><span class="token keyword">int</span> Amount<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">return</span> <span class="token function">table</span><span class="token punctuation">(</span>Amount<span class="token operator">:</span> Amount<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">void</span> AddCoins <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span>L<span class="token string">"AddCoins"</span><span class="token punctuation">,</span> AddCoinsFunction<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// Typically this would be put in a separate module called "Reducer" or "RootReducer"</span>
+<span class="token keyword">void</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>GenericDictionary Action<span class="token punctuation">,</span> <span class="token keyword">void</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> AddCoins<span class="token punctuation">.</span>ActionName
+	<span class="token punctuation">{</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">+</span> Action<span class="token punctuation">.</span>Amount<span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token punctuation">}</span>
+
+entry <span class="token keyword">void</span> <span class="token function">Main</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	GenericDictionary CoinsStore <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token keyword">new</span><span class="token punctuation">(</span>Reducer<span class="token punctuation">,</span> INITIAL_STATE<span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// You can also do Helium.CreateStore(Reducer, InitialState)</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token class-name">CoinsStore</span><span class="token double-colon punctuation">::</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// 0</span>
+
+	<span class="token class-name">CoinsStore</span><span class="token double-colon punctuation">::</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token class-name">CoinsStore</span><span class="token double-colon punctuation">::</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// 10</span>
+
+	<span class="token class-name">CoinsStore</span><span class="token double-colon punctuation">::</span><span class="token function">Dispatch</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// Dispatch is also valid</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token class-name">CoinsStore</span><span class="token double-colon punctuation">::</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// 20</span>
+<span class="token punctuation">}</span>
+</code></pre>
+</div></header><h2><a aria-hidden="true" tabindex="-1" class="anchor anchor__h2 anchorWithStickyNavbar_31ik" id="functions"></a>Functions<a class="hash-link" href="#functions" title="Direct link to heading">#</a></h2><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Is"></a><code style="text-decoration:none">Is</code><a class="hash-link" href="#Is" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L862"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store.</code><code class="green_3LnD">Is</code><code>(</code><div class="inset_2cJr"><div><code>Object: </code><code class="blue_2Afy">any</code><span class="inlineDescription_17uy">-- <span>
+<p>The object to check against.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">boolean</code><span class="inlineDescription_17uy">-- <span>
+<p>Whether or not the object is a Store.</p>
+</span></span></div><div>
+<p>Determines if the passed object is a Store.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token function">print</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">Is</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- true</span>
+<span class="token function">print</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">Is</span><span class="token punctuation">(</span><span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- false</span>
+<span class="token function">print</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">Is</span><span class="token punctuation">(</span><span class="token keyword">true</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- false</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="new"></a><code style="text-decoration:none">new</code><a class="hash-link" href="#new" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L831"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store.</code><code class="green_3LnD">new</code><code>(</code><div class="inset_2cJr"><div><code>Reducer: </code><code class="blue_2Afy">ReducerFunction</code><code>,</code><span class="inlineDescription_17uy">-- <span>
+<p>The reducer function.</p>
+</span></span></div><div><code>InitialState: </code><code class="blue_2Afy">NonNil</code><span class="inlineDescription_17uy">-- <span>
+<p>The initial state.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">Store</code></div><div>
+<p>Creates a new Store object.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>ThisIsAStore <span class="token operator">=</span> <span class="token keyword">true</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="ApplyMiddleware"></a><code style="text-decoration:none">ApplyMiddleware</code><a class="hash-link" href="#ApplyMiddleware" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L422"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store:</code><code class="green_3LnD">ApplyMiddleware</code><code>(</code><div class="inset_2cJr"><div><code>Middleware: </code><code class="green_3LnD">(</code><code>Store: </code><code class="blue_2Afy">Store</code><code class="green_3LnD">)</code><code class="green_3LnD"> → </code><code class="green_3LnD">(</code><code>NextDispatch: </code><code class="purple__nFc">(</code><code>Action: </code><code class="blue_2Afy">BaseAction</code><code class="purple__nFc">)</code><code class="purple__nFc"> → </code><code class="purple__nFc">(</code><code class="purple__nFc">)</code><code class="green_3LnD">)</code><code class="green_3LnD"> → </code><code class="green_3LnD">(</code><code>Action: </code><code class="blue_2Afy">BaseAction</code><code class="green_3LnD">)</code><code class="green_3LnD"> → </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code><span class="inlineDescription_17uy">-- <span>
+<p>The middleware function you are applying.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">Store</code><span class="inlineDescription_17uy">-- <span>
+<p>The self reference for chaining these calls.</p>
+</span></span></div><div>
+<p>
+  Applies a Middleware to the Store. Middlware are simply functions that intercept actions upon being dispatched, and allow custom logic to be applied to them.
+  The way middlewares intercept actions is by providing a bridge in between store.dispatch being called and the root reducer receiving those actions that were dispatched.
+</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> SetValueA <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"SetValueA"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>Value <span class="token operator">=</span> Value<span class="token punctuation">}</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> _<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> SetValueA<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	ValueA <span class="token operator">=</span> <span class="token string">"A"</span><span class="token punctuation">;</span>
+	ValueB <span class="token operator">=</span> <span class="token punctuation">{</span>ValueC <span class="token operator">=</span> <span class="token string">"C"</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">ApplyMiddleware</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>LoggerMiddleware<span class="token punctuation">)</span><span class="token punctuation">:</span><span class="token function">ApplyMiddleware</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>InspectorMiddleware<span class="token punctuation">)</span>
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">SetValueA</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">--[[
+	Prints:
+		{
+			["Value"] = "ValueA",
+			["Type"] = "SetValueA"
+		}
+		SetValueA
+]]</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Connect"></a><code style="text-decoration:none">Connect</code><a class="hash-link" href="#Connect" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L676"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store:</code><code class="green_3LnD">Connect</code><code>(</code><div class="inset_2cJr"><div><code>StringKeyPath: </code><code class="blue_2Afy">string</code><code>,</code><span class="inlineDescription_17uy">-- <span>
+<p>The string path to run the function at. An empty string is equal to any changes made.</p>
+</span></span></div><div><code>Function: </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code><code class="green_3LnD"> → </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code><span class="inlineDescription_17uy">-- <span>
+<p>The function you want to run when the state is updated.</p>
+</span></span></div></div><code>) → </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code><code class="green_3LnD"> → </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code><span class="inlineDescription_17uy">-- <span>
+<p>A function that disconnects the connection.</p>
+</span></span></div><div>
+<p>Connects a function to the given string keypath.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">SetValue</span><span class="token punctuation">(</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>Value <span class="token operator">=</span> Value<span class="token punctuation">}</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> SetValueA <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"SetValueA"</span><span class="token punctuation">,</span> SetValue<span class="token punctuation">)</span>
+<span class="token keyword">local</span> SetValueC <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"SetValueC"</span><span class="token punctuation">,</span> SetValue<span class="token punctuation">)</span>
+<span class="token keyword">local</span> SetValueD <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"SetValueD"</span><span class="token punctuation">,</span> SetValue<span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> _<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> SetValueA<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">elseif</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> SetValueC<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"ValueB"</span><span class="token punctuation">,</span> <span class="token string">"ValueC"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">elseif</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> SetValueD<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"ValueD"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	ValueA <span class="token operator">=</span> <span class="token string">"A"</span><span class="token punctuation">;</span>
+	ValueB <span class="token operator">=</span> <span class="token punctuation">{</span>ValueC <span class="token operator">=</span> <span class="token string">"C"</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Disconnect <span class="token operator">=</span> Store<span class="token punctuation">:</span><span class="token function">Connect</span><span class="token punctuation">(</span><span class="token string">""</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"The store was changed!"</span><span class="token punctuation">,</span> Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Connect</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"ValueA was changed!"</span><span class="token punctuation">,</span> Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Connect</span><span class="token punctuation">(</span><span class="token string">"ValueB.ValueC"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"ValueB.ValueC was changed!"</span><span class="token punctuation">,</span> Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueB"</span><span class="token punctuation">,</span> <span class="token string">"ValueC"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">SetValueD</span><span class="token punctuation">(</span><span class="token string">"ValueD"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">--[[
+	Prints:
+		The store was changed! {
+			["ValueA"] = "A",
+			["ValueB"] = {
+				["ValueC"] = "C"
+			},
+			["ValueD"] = "ValueD"
+		}
+]]</span>
+
+<span class="token function">Disconnect</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">SetValueA</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- Prints: ValueA was changed! ValueA</span>
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">SetValueC</span><span class="token punctuation">(</span><span class="token string">"ValueC"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- Prints: ValueB.ValueC was changed! ValueC</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Dispatch"></a><code style="text-decoration:none">Dispatch</code><a class="hash-link" href="#Dispatch" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L488"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store:</code><code class="green_3LnD">Dispatch</code><code>(</code><div class="inset_2cJr"><div><code>Action: </code><code class="blue_2Afy">BaseAction</code><span class="inlineDescription_17uy">-- <span>
+<p>The Action you are dispatching.</p>
+</span></span></div></div><code>) → </code><code>(</code><code>)</code></div><div>
+<p>Dispatches an Action to the Store.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> DispatchAction <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"DispatchAction"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>
+		Value <span class="token operator">=</span> Value<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Dispatch</span><span class="token punctuation">(</span><span class="token function">DispatchAction</span><span class="token punctuation">(</span><span class="token string">"Value"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+Store<span class="token punctuation">:</span><span class="token function">Dispatch</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+	Type <span class="token operator">=</span> <span class="token string">"AwesomeAction"</span><span class="token punctuation">;</span>
+	AwesomeValue <span class="token operator">=</span> <span class="token keyword">true</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Fire"></a><code style="text-decoration:none">Fire</code><a class="hash-link" href="#Fire" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L461"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store:</code><code class="green_3LnD">Fire</code><code>(</code><div class="inset_2cJr"><div><code>Action: </code><code class="blue_2Afy">BaseAction</code><span class="inlineDescription_17uy">-- <span>
+<p>The Action you are dispatching.</p>
+</span></span></div></div><code>) → </code><code>(</code><code>)</code></div><div>
+<p>Dispatches an Action to the Store.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> DispatchAction <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"DispatchAction"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>
+		Value <span class="token operator">=</span> Value<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">DispatchAction</span><span class="token punctuation">(</span><span class="token string">"Value"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+	Type <span class="token operator">=</span> <span class="token string">"AwesomeAction"</span><span class="token punctuation">;</span>
+	AwesomeValue <span class="token operator">=</span> <span class="token keyword">true</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="GetState"></a><code style="text-decoration:none">GetState</code><a class="hash-link" href="#GetState" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L513"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store:</code><code class="green_3LnD">GetState</code><code>(</code><div class="inset_2cJr"><div><code>...: </code><code class="blue_2Afy">string?</code><span class="inlineDescription_17uy">-- <span>
+<p>The string path you want to get.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">T</code><span class="inlineDescription_17uy">-- <span>
+<p>The current Store state.</p>
+</span></span></div><div>
+<p>Gets the current Store state. If the value returned is a table, it is deep copied to prevent You can optionally provide a path.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	ValueA <span class="token operator">=</span> <span class="token string">"A"</span><span class="token punctuation">;</span>
+	ValueB <span class="token operator">=</span> <span class="token punctuation">{</span>ValueC <span class="token operator">=</span> <span class="token string">"C"</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token function">print</span><span class="token punctuation">(</span>Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- The state.</span>
+<span class="token function">print</span><span class="token punctuation">(</span>Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- "A"</span>
+<span class="token function">print</span><span class="token punctuation">(</span>Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueB"</span><span class="token punctuation">,</span> <span class="token string">"ValueC"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- "C"</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="InspectState"></a><code style="text-decoration:none">InspectState</code><a class="hash-link" href="#InspectState" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L811"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store:</code><code class="green_3LnD">InspectState</code><code>(</code><code>) → </code><code class="blue_2Afy">string</code><span class="inlineDescription_17uy">-- <span>
+<p>The string representation of the Store's current state.</p>
+</span></span></div><div>
+<p>Returns a string representation of the Store's current state. This is useful for debugging things.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	ValueA <span class="token operator">=</span> <span class="token string">"A"</span><span class="token punctuation">;</span>
+	ValueB <span class="token operator">=</span> <span class="token punctuation">{</span>ValueC <span class="token operator">=</span> <span class="token string">"C"</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token function">print</span><span class="token punctuation">(</span>Store<span class="token punctuation">:</span><span class="token function">InspectState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">--[[
+	Prints:
+		{
+			["ValueA"] = "A",
+			["ValueB"] = {
+				["ValueC"] = "C"
+			}
+		}
+]]</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="SetState"></a><code style="text-decoration:none">SetState</code><a class="hash-link" href="#SetState" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L564"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store:</code><code class="green_3LnD">SetState</code><code>(</code><div class="inset_2cJr"><div><code>...: </code><code class="blue_2Afy">string?</code><code>,</code><span class="inlineDescription_17uy">-- <span>
+<p>The path of the state to set.</p>
+</span></span></div><div><code>Value: </code><code class="blue_2Afy">any</code><span class="inlineDescription_17uy">-- <span>
+<p>The value you are setting. This is always required, think of it as setting a Url -> example.com/path/to/value == "path", "to", "value"</p>
+</span></span></div></div><code>) → </code><code>(</code><code>)</code></div><div>
+<p>Sets the current Store state. The varargs are the string paths you want to set the state of.</p>
+<div class="admonition admonition-info alert alert--info">
+  <div class="admonition-heading">
+    <h5><span class="admonition-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 14 16">
+          <path d="M7 2.3c3.14 0 5.7 2.56 5.7 5.7s-2.56 5.7-5.7 5.7A5.71 5.71 0 0 1 1.3 8c0-3.14 2.56-5.7 5.7-5.7zM7 1C3.14 1 0 4.14 0 8s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm1 3H6v5h2V4zm0 6H6v2h2v-2z"></path>
+        </svg></span>info</h5>
+  </div>
+  <div class="admonition-content">
+    <p>The path is totally optional and skipping it will just result in you editing the root of the state table.</p>
+  </div>
+</div>
+<div class="admonition admonition-warning alert alert--danger">
+  <div class="admonition-heading">
+    <h5><span class="admonition-icon"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="16" viewBox="0 0 12 16">
+          <path d="M5.05.31c.81 2.17.41 3.38-.52 4.31C3.55 5.67 1.98 6.45.9 7.98c-1.45 2.05-1.7 6.53 3.53 7.7-2.2-1.16-2.67-4.52-.3-6.61-.61 2.03.53 3.33 1.94 2.86 1.39-.47 2.3.53 2.27 1.67-.02.78-.31 1.44-1.13 1.81 3.42-.59 4.78-3.42 4.78-5.56 0-2.84-2.53-3.22-1.25-5.61-1.52.13-2.03 1.13-1.89 2.75.09 1.08-1.02 1.8-1.86 1.33-.67-.41-.66-1.19-.06-1.78C8.18 5.31 8.68 2.45 5.05.32L5.03.3l.02.01z"></path>
+        </svg></span>warning</h5>
+  </div>
+  <div class="admonition-content">
+    <p><code>SetState</code> overwrites the table, so if you want to preserve the original table, you should be using actions and the reducer function.</p>
+  </div>
+</div>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	ValueA <span class="token operator">=</span> <span class="token string">"A"</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token function">print</span><span class="token punctuation">(</span>Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- "A"</span>
+Store<span class="token punctuation">:</span><span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">,</span> <span class="token string">"ValueA"</span><span class="token punctuation">)</span>
+<span class="token function">print</span><span class="token punctuation">(</span>Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- "ValueA"</span>
+</code></pre>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	ValueB <span class="token operator">=</span> <span class="token punctuation">{</span>ValueC <span class="token operator">=</span> <span class="token string">"C"</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token function">print</span><span class="token punctuation">(</span>Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueB"</span><span class="token punctuation">,</span> <span class="token string">"ValueC"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- "C"</span>
+Store<span class="token punctuation">:</span><span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"ValueB"</span><span class="token punctuation">,</span> <span class="token string">"ValueC"</span><span class="token punctuation">,</span> <span class="token number">3</span><span class="token punctuation">)</span>
+<span class="token function">print</span><span class="token punctuation">(</span>Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueB"</span><span class="token punctuation">,</span> <span class="token string">"ValueC"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- "3"</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Subscribe"></a><code style="text-decoration:none">Subscribe</code><a class="hash-link" href="#Subscribe" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Store.lua#L761"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Store:</code><code class="green_3LnD">Subscribe</code><code>(</code><div class="inset_2cJr"><div><code>StringKeyPath: </code><code class="blue_2Afy">string</code><code>,</code><span class="inlineDescription_17uy">-- <span>
+<p>The string path to run the function at. An empty string is equal to any changes made.</p>
+</span></span></div><div><code>Function: </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code><code class="green_3LnD"> → </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code><span class="inlineDescription_17uy">-- <span>
+<p>The function you want to run when the state is updated.</p>
+</span></span></div></div><code>) → </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code><code class="green_3LnD"> → </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code><span class="inlineDescription_17uy">-- <span>
+<p>A function that disconnects the connection.</p>
+</span></span></div><div>
+<p>Connects a function to the given string keypath.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">SetValue</span><span class="token punctuation">(</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>Value <span class="token operator">=</span> Value<span class="token punctuation">}</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> SetValueA <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"SetValueA"</span><span class="token punctuation">,</span> SetValue<span class="token punctuation">)</span>
+<span class="token keyword">local</span> SetValueC <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"SetValueC"</span><span class="token punctuation">,</span> SetValue<span class="token punctuation">)</span>
+<span class="token keyword">local</span> SetValueD <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"SetValueD"</span><span class="token punctuation">,</span> SetValue<span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> _<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> SetValueA<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">elseif</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> SetValueC<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"ValueB"</span><span class="token punctuation">,</span> <span class="token string">"ValueC"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">elseif</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> SetValueD<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"ValueD"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	ValueA <span class="token operator">=</span> <span class="token string">"A"</span><span class="token punctuation">;</span>
+	ValueB <span class="token operator">=</span> <span class="token punctuation">{</span>ValueC <span class="token operator">=</span> <span class="token string">"C"</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Disconnect <span class="token operator">=</span> Store<span class="token punctuation">:</span><span class="token function">Subscribe</span><span class="token punctuation">(</span><span class="token string">""</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"The store was changed!"</span><span class="token punctuation">,</span> Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Subscribe</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"ValueA was changed!"</span><span class="token punctuation">,</span> Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Subscribe</span><span class="token punctuation">(</span><span class="token string">"ValueB.ValueC"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"ValueB.ValueC was changed!"</span><span class="token punctuation">,</span> Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"ValueB"</span><span class="token punctuation">,</span> <span class="token string">"ValueC"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Dispatch</span><span class="token punctuation">(</span><span class="token function">SetValueD</span><span class="token punctuation">(</span><span class="token string">"ValueD"</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">--[[
+	Prints:
+		The store was changed! {
+			["ValueA"] = "A",
+			["ValueB"] = {
+				["ValueC"] = "C"
+			},
+			["ValueD"] = "ValueD"
+		}
+]]</span>
+
+<span class="token function">Disconnect</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+Store<span class="token punctuation">:</span><span class="token function">Dispatch</span><span class="token punctuation">(</span><span class="token function">SetValueA</span><span class="token punctuation">(</span><span class="token string">"ValueA"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- Prints: ValueA was changed! ValueA</span>
+Store<span class="token punctuation">:</span><span class="token function">Dispatch</span><span class="token punctuation">(</span><span class="token function">SetValueC</span><span class="token punctuation">(</span><span class="token string">"ValueC"</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- Prints: ValueB.ValueC was changed! ValueC</span>
+</code></pre>
+</div></div></article></div><details><summary>Show raw api</summary><pre style="max-width:100%;white-space:pre-wrap">{
+    &quot;functions&quot;: [
+        {
+            &quot;name&quot;: &quot;ApplyMiddleware&quot;,
+            &quot;desc&quot;: &quot;Applies a Middleware to the Store. Middlware are simply functions that intercept actions upon being dispatched, and allow custom logic to be applied to them.\nThe way middlewares intercept actions is by providing a bridge in between store.dispatch being called and the root reducer receiving those actions that were dispatched.\n\n```lua\nlocal SetValueA = Helium.MakeActionCreator(\&quot;SetValueA\&quot;, function(Value)\n\treturn {Value = Value}\nend)\n\nlocal Store = Helium.Store.new(function(Action, _, SetState)\n\tif Action.Type == SetValueA.ActionName then\n\t\tSetState(\&quot;ValueA\&quot;, Action.Value)\n\tend\nend, {\n\tValueA = \&quot;A\&quot;;\n\tValueB = {ValueC = \&quot;C\&quot;};\n})\n\nStore:ApplyMiddleware(Helium.LoggerMiddleware):ApplyMiddleware(Helium.InspectorMiddleware)\nStore:Fire(SetValueA(\&quot;ValueA\&quot;))\n--[[\n\tPrints:\n\t\t{\n\t\t\t[\&quot;Value\&quot;] = \&quot;ValueA\&quot;,\n\t\t\t[\&quot;Type\&quot;] = \&quot;SetValueA\&quot;\n\t\t}\n\t\tSetValueA\n]]\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;Middleware&quot;,
+                    &quot;desc&quot;: &quot;The middleware function you are applying.&quot;,
+                    &quot;lua_type&quot;: &quot;(Store: Store) -&gt; (NextDispatch: (Action: BaseAction) -&gt; ()) -&gt; (Action: BaseAction) -&gt; ()&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;The self reference for chaining these calls.&quot;,
+                    &quot;lua_type&quot;: &quot;Store&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;method&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 422,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Fire&quot;,
+            &quot;desc&quot;: &quot;Dispatches an Action to the Store.\n\n```lua\nlocal DispatchAction = Helium.MakeActionCreator(\&quot;DispatchAction\&quot;, function(Value)\n\treturn {\n\t\tValue = Value;\n\t}\nend)\n\nStore:Fire(DispatchAction(\&quot;Value\&quot;))\nStore:Fire({\n\tType = \&quot;AwesomeAction\&quot;;\n\tAwesomeValue = true;\n})\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;Action&quot;,
+                    &quot;desc&quot;: &quot;The Action you are dispatching.&quot;,
+                    &quot;lua_type&quot;: &quot;BaseAction&quot;
+                }
+            ],
+            &quot;returns&quot;: [],
+            &quot;function_type&quot;: &quot;method&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 461,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Dispatch&quot;,
+            &quot;desc&quot;: &quot;Dispatches an Action to the Store.\n\n```lua\nlocal DispatchAction = Helium.MakeActionCreator(\&quot;DispatchAction\&quot;, function(Value)\n\treturn {\n\t\tValue = Value;\n\t}\nend)\n\nStore:Dispatch(DispatchAction(\&quot;Value\&quot;))\nStore:Dispatch({\n\tType = \&quot;AwesomeAction\&quot;;\n\tAwesomeValue = true;\n})\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;Action&quot;,
+                    &quot;desc&quot;: &quot;The Action you are dispatching.&quot;,
+                    &quot;lua_type&quot;: &quot;BaseAction&quot;
+                }
+            ],
+            &quot;returns&quot;: [],
+            &quot;function_type&quot;: &quot;method&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 488,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;GetState&quot;,
+            &quot;desc&quot;: &quot;Gets the current Store state. If the value returned is a table, it is deep copied to prevent  You can optionally provide a path.\n\n```lua\nlocal Store = Helium.Store.new(function() end, {\n\tValueA = \&quot;A\&quot;;\n\tValueB = {ValueC = \&quot;C\&quot;};\n})\n\nprint(Store:GetState()) -- The state.\nprint(Store:GetState(\&quot;ValueA\&quot;)) -- \&quot;A\&quot;\nprint(Store:GetState(\&quot;ValueB\&quot;, \&quot;ValueC\&quot;)) -- \&quot;C\&quot;\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;...&quot;,
+                    &quot;desc&quot;: &quot;The string path you want to get.&quot;,
+                    &quot;lua_type&quot;: &quot;string?&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;The current Store state.&quot;,
+                    &quot;lua_type&quot;: &quot;T&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;method&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 513,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;SetState&quot;,
+            &quot;desc&quot;: &quot;Sets the current Store state. The varargs are the string paths you want to set the state of.\n\n:::info\nThe path is totally optional and skipping it will just result in you editing the root of the state table.\n:::\n\n:::warning\n`SetState` overwrites the table, so if you want to preserve the original table, you should be using actions and the reducer function.\n:::\n\n```lua\nlocal Store = Helium.Store.new(function() end, {\n\tValueA = \&quot;A\&quot;;\n})\n\nprint(Store:GetState(\&quot;ValueA\&quot;)) -- \&quot;A\&quot;\nStore:SetState(\&quot;ValueA\&quot;, \&quot;ValueA\&quot;)\nprint(Store:GetState(\&quot;ValueA\&quot;)) -- \&quot;ValueA\&quot;\n```\n\n```lua\nlocal Store = Helium.Store.new(function() end, {\n\tValueB = {ValueC = \&quot;C\&quot;};\n})\n\nprint(Store:GetState(\&quot;ValueB\&quot;, \&quot;ValueC\&quot;)) -- \&quot;C\&quot;\nStore:SetState(\&quot;ValueB\&quot;, \&quot;ValueC\&quot;, 3)\nprint(Store:GetState(\&quot;ValueB\&quot;, \&quot;ValueC\&quot;)) -- \&quot;3\&quot;\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;...&quot;,
+                    &quot;desc&quot;: &quot;The path of the state to set.&quot;,
+                    &quot;lua_type&quot;: &quot;string?&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;Value&quot;,
+                    &quot;desc&quot;: &quot;The value you are setting. This is always required, think of it as setting a Url -&gt; example.com/path/to/value == \&quot;path\&quot;, \&quot;to\&quot;, \&quot;value\&quot;&quot;,
+                    &quot;lua_type&quot;: &quot;any&quot;
+                }
+            ],
+            &quot;returns&quot;: [],
+            &quot;function_type&quot;: &quot;method&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 564,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Connect&quot;,
+            &quot;desc&quot;: &quot;Connects a function to the given string keypath.\n\n```lua\nlocal function SetValue(Value)\n\treturn {Value = Value}\nend\n\nlocal SetValueA = Helium.MakeActionCreator(\&quot;SetValueA\&quot;, SetValue)\nlocal SetValueC = Helium.MakeActionCreator(\&quot;SetValueC\&quot;, SetValue)\nlocal SetValueD = Helium.MakeActionCreator(\&quot;SetValueD\&quot;, SetValue)\n\nlocal Store = Helium.Store.new(function(Action, _, SetState)\n\tif Action.Type == SetValueA.ActionName then\n\t\tSetState(\&quot;ValueA\&quot;, Action.Value)\n\telseif Action.Type == SetValueC.ActionName then\n\t\tSetState(\&quot;ValueB\&quot;, \&quot;ValueC\&quot;, Action.Value)\n\telseif Action.Type == SetValueD.ActionName then\n\t\tSetState(\&quot;ValueD\&quot;, Action.Value)\n\tend\nend, {\n\tValueA = \&quot;A\&quot;;\n\tValueB = {ValueC = \&quot;C\&quot;};\n})\n\nlocal Disconnect = Store:Connect(\&quot;\&quot;, function()\n\tprint(\&quot;The store was changed!\&quot;, Store:GetState())\nend)\n\nStore:Connect(\&quot;ValueA\&quot;, function()\n\tprint(\&quot;ValueA was changed!\&quot;, Store:GetState(\&quot;ValueA\&quot;))\nend)\n\nStore:Connect(\&quot;ValueB.ValueC\&quot;, function()\n\tprint(\&quot;ValueB.ValueC was changed!\&quot;, Store:GetState(\&quot;ValueB\&quot;, \&quot;ValueC\&quot;))\nend)\n\nStore:Fire(SetValueD(\&quot;ValueD\&quot;))\n--[[\n\tPrints:\n\t\tThe store was changed! {\n\t\t\t[\&quot;ValueA\&quot;] = \&quot;A\&quot;,\n\t\t\t[\&quot;ValueB\&quot;] = {\n\t\t\t\t[\&quot;ValueC\&quot;] = \&quot;C\&quot;\n\t\t\t},\n\t\t\t[\&quot;ValueD\&quot;] = \&quot;ValueD\&quot;\n\t\t}\n]]\n\nDisconnect()\nStore:Fire(SetValueA(\&quot;ValueA\&quot;)) -- Prints: ValueA was changed! ValueA\nStore:Fire(SetValueC(\&quot;ValueC\&quot;)) -- Prints: ValueB.ValueC was changed! ValueC\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;StringKeyPath&quot;,
+                    &quot;desc&quot;: &quot;The string path to run the function at. An empty string is equal to any changes made.&quot;,
+                    &quot;lua_type&quot;: &quot;string&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;Function&quot;,
+                    &quot;desc&quot;: &quot;The function you want to run when the state is updated.&quot;,
+                    &quot;lua_type&quot;: &quot;() -&gt; ()&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;A function that disconnects the connection.&quot;,
+                    &quot;lua_type&quot;: &quot;() -&gt; ()&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;method&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 676,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Subscribe&quot;,
+            &quot;desc&quot;: &quot;Connects a function to the given string keypath.\n\n```lua\nlocal function SetValue(Value)\n\treturn {Value = Value}\nend\n\nlocal SetValueA = Helium.MakeActionCreator(\&quot;SetValueA\&quot;, SetValue)\nlocal SetValueC = Helium.MakeActionCreator(\&quot;SetValueC\&quot;, SetValue)\nlocal SetValueD = Helium.MakeActionCreator(\&quot;SetValueD\&quot;, SetValue)\n\nlocal Store = Helium.Store.new(function(Action, _, SetState)\n\tif Action.Type == SetValueA.ActionName then\n\t\tSetState(\&quot;ValueA\&quot;, Action.Value)\n\telseif Action.Type == SetValueC.ActionName then\n\t\tSetState(\&quot;ValueB\&quot;, \&quot;ValueC\&quot;, Action.Value)\n\telseif Action.Type == SetValueD.ActionName then\n\t\tSetState(\&quot;ValueD\&quot;, Action.Value)\n\tend\nend, {\n\tValueA = \&quot;A\&quot;;\n\tValueB = {ValueC = \&quot;C\&quot;};\n})\n\nlocal Disconnect = Store:Subscribe(\&quot;\&quot;, function()\n\tprint(\&quot;The store was changed!\&quot;, Store:GetState())\nend)\n\nStore:Subscribe(\&quot;ValueA\&quot;, function()\n\tprint(\&quot;ValueA was changed!\&quot;, Store:GetState(\&quot;ValueA\&quot;))\nend)\n\nStore:Subscribe(\&quot;ValueB.ValueC\&quot;, function()\n\tprint(\&quot;ValueB.ValueC was changed!\&quot;, Store:GetState(\&quot;ValueB\&quot;, \&quot;ValueC\&quot;))\nend)\n\nStore:Dispatch(SetValueD(\&quot;ValueD\&quot;))\n--[[\n\tPrints:\n\t\tThe store was changed! {\n\t\t\t[\&quot;ValueA\&quot;] = \&quot;A\&quot;,\n\t\t\t[\&quot;ValueB\&quot;] = {\n\t\t\t\t[\&quot;ValueC\&quot;] = \&quot;C\&quot;\n\t\t\t},\n\t\t\t[\&quot;ValueD\&quot;] = \&quot;ValueD\&quot;\n\t\t}\n]]\n\nDisconnect()\nStore:Dispatch(SetValueA(\&quot;ValueA\&quot;)) -- Prints: ValueA was changed! ValueA\nStore:Dispatch(SetValueC(\&quot;ValueC\&quot;)) -- Prints: ValueB.ValueC was changed! ValueC\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;StringKeyPath&quot;,
+                    &quot;desc&quot;: &quot;The string path to run the function at. An empty string is equal to any changes made.&quot;,
+                    &quot;lua_type&quot;: &quot;string&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;Function&quot;,
+                    &quot;desc&quot;: &quot;The function you want to run when the state is updated.&quot;,
+                    &quot;lua_type&quot;: &quot;() -&gt; ()&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;A function that disconnects the connection.&quot;,
+                    &quot;lua_type&quot;: &quot;() -&gt; ()&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;method&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 761,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;InspectState&quot;,
+            &quot;desc&quot;: &quot;Returns a string representation of the Store&#x27;s current state. This is useful for debugging things.\n\n```lua\nlocal Store = Helium.Store.new(function() end, {\n\tValueA = \&quot;A\&quot;;\n\tValueB = {ValueC = \&quot;C\&quot;};\n})\n\nprint(Store:InspectState())\n--[[\n\tPrints:\n\t\t{\n\t\t\t[\&quot;ValueA\&quot;] = \&quot;A\&quot;,\n\t\t\t[\&quot;ValueB\&quot;] = {\n\t\t\t\t[\&quot;ValueC\&quot;] = \&quot;C\&quot;\n\t\t\t}\n\t\t}\n]]\n```&quot;,
+            &quot;params&quot;: [],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;The string representation of the Store&#x27;s current state.&quot;,
+                    &quot;lua_type&quot;: &quot;string&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;method&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 811,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;new&quot;,
+            &quot;desc&quot;: &quot;Creates a new Store object.\n\n```lua\nlocal Store = Helium.Store.new(function()\nend, {ThisIsAStore = true})\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;Reducer&quot;,
+                    &quot;desc&quot;: &quot;The reducer function.&quot;,
+                    &quot;lua_type&quot;: &quot;ReducerFunction&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;InitialState&quot;,
+                    &quot;desc&quot;: &quot;The initial state.&quot;,
+                    &quot;lua_type&quot;: &quot;NonNil&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;&quot;,
+                    &quot;lua_type&quot;: &quot;Store&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 831,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Is&quot;,
+            &quot;desc&quot;: &quot;Determines if the passed object is a Store.\n\n```lua\nprint(Helium.Store.Is(Helium.Store.new(function() end, {}))) -- true\nprint(Helium.Store.Is({})) -- false\nprint(Helium.Store.Is(true)) -- false\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;Object&quot;,
+                    &quot;desc&quot;: &quot;The object to check against.&quot;,
+                    &quot;lua_type&quot;: &quot;any&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;Whether or not the object is a Store.&quot;,
+                    &quot;lua_type&quot;: &quot;boolean&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 862,
+                &quot;path&quot;: &quot;src/Store.lua&quot;
+            }
+        }
+    ],
+    &quot;properties&quot;: [],
+    &quot;types&quot;: [],
+    &quot;name&quot;: &quot;Store&quot;,
+    &quot;desc&quot;: &quot;The Store object is one of the API changes going from Rocrastinate to Helium, as it is no longer a function that returns a table and is instead a proper Lua object.\nThe Store object is inspired by [Redux](https://redux.js.org/), a state management library that is often used in JavaScript web applications. Like Redux, the Store\nis where we can centralize the state of our application. It uses \&quot;Actions\&quot; to update the application state, and \&quot;Reducers\&quot; to control how the state changes with a given action.\n\nHelium&#x27;s Store is NOT equivalent to Redux or [Rodux](https://github.com/Roblox/rodux). Some major differences are as follows:\n* Helium stores must be passed as the first argument in the constructors of components that use Store objects. This means that the \&quot;store\&quot; a component is in is not determined by context, but by explicit argument.\n* Redux reduces actions by re-creating the entire application state. For the sake of optimization, enabled by the coupling of Helium Components with Store, Helium Store reducers are passed the functions `GetState` and `SetState`, which copy/mutate the application&#x27;s state respectively.\n* With React/Redux (or Roact/Rodux), changes to the store will immediately re-render a component. In contrast, changes in a Helium store will immediately call `QueueUpdate()`, which defers rendering changes to the next frame binding.\n\n## Actions\n\n\&quot;Actions\&quot; are the *only* source of information for our Helium Store. They represent information needed to change some portion of the application state, and are represented as lua objects. They are sent using `Store:Fire(Action)` or `Store:Dispatch(Action)`.\n\nActions should typically be represented as tables, and have a `Type` property denoting what kind of action is being sent. For example:\n\n```lua\nlocal MyAction = {\n\tType = \&quot;AddCoins\&quot;;\n\tAmount = 1;\n}\n\nStore:Fire(MyAction)\n```\n\n```cpp\ntypedef GenericDictionary table&lt;LuaString, any&gt;;\n\nGenericDictionary MyAction = table(\n\tType: L\&quot;AddCoins\&quot;,\n\tAmount: 1,\n);\n\nStore::Fire(MyAction);\n```\n\n_________________\n\n## Action Creators\n\nTypically, instead of creating actions directly, we can use \&quot;Action Creators\&quot;, which are simply functions that create actions for us with a given set of arguments. Note that these only **create the action**, and **do not dispatch them**:\n```lua\nlocal function AddCoins(Amount: number)\n\treturn {\n\t\tType = \&quot;AddCoins\&quot;;\n\t\tAmount = Amount;\n\t}\nend\n\nStore:Fire(AddCoins(1))\n```\n\n```cpp\ntypedef GenericDictionary table&lt;LuaString, any&gt;;\n\nGenericDictionary AddCoins(int Amount)\n{\n\treturn table(\n\t\tType: L\&quot;AddCoins\&quot;,\n\t\tAmount: Amount,\n\t);\n}\n\nStore::Fire(AddCoins(1));\n```\n\nActions can be dispatched at any time from anywhere in the application, including the middle of a Redraw().\n\nHelium actually has a built-in function used to creating this, called `MakeActionCreator`. This can be used as seen in the following code:\n\n```lua\nlocal AddCoins = Helium.MakeActionCreator(\&quot;AddCoins\&quot;, function(Amount: number)\n\treturn {\n\t\tAmount = Amount;\n\t}\nend)\n\nStore:Fire(AddCoins(1))\n```\n\n```cpp\ntypedef GenericDictionary table&lt;LuaString, any&gt;;\n\nGenericDictionary AddCoinsAction(int Amount)\n{\n\treturn table(Amount: Amount);\n}\n\nvoid AddCoins = Helium.MakeActionCreator(L\&quot;AddCoins\&quot;, AddCoinsAction);\n\nStore::Fire(AddCoins(1));\n```\n\n_________________\n\n## Responding to Actions\n\nLike Redux, Helium uses \&quot;Reducers\&quot;, which are functions that respond to an action by modifying a certain portion of the store&#x27;s state.\n\nReducers are given three arguments: `(Action, GetState, SetState)`.\n\n* `Action` is the action that was dispatched.\n* `GetState(...KeyPath)` is a function that gets a value in the store by nested keys.\n* `SetState(...KeyPath, Value)` is a function that sets a value in the store by nested keys.\n\nIf we want to set the value of `Coins` in the store whenever an `AddCoins` action is received, we can use the following code:\n\n```lua\nlocal function Reducer(Action, GetState, SetState)\n\tif Action.Type == \&quot;AddCoins\&quot; then\n\t\tlocal Coins = GetState(\&quot;Coins\&quot;)\n\t\tSetState(\&quot;Coins\&quot;, Coins + Action.Amount)\n\tend\nend\n```\n\nIf you&#x27;re using the `MakeActionCreator` function, you can set it up like so:\n\n```lua\nlocal AddCoins = require(ReplicatedStorage.AddCoins)\n\nlocal function Reducer(Action, GetState, SetState)\n\tif Action.Type == AddCoins.ActionName then\n\t\tlocal Coins = GetState(\&quot;Coins\&quot;)\n\t\tSetState(\&quot;Coins\&quot;, Coins + Action.Amount)\n\tend\nend\n```\n\nThis code makes a few assumptions:\n\n1. There is already a value in the store named `Coins`, and that it is a number.\n2. That the action has a property named `Type`.\n3. That the action (which we&#x27;ve identified as an `AddCoins` action) has a property named `Amount`, and that it is a number.\n\nIt is generally best to centralize actions or action creators in an `Actions` module, so that these assumptions can be standardized. Additionally, we need to declare the initial state of our store somewhere:\n\n```lua\nlocal InitialState = {\n\tCoins = 0;\n}\n```\n\nThen, when we call\n\n```lua\nStore:Fire(AddCoins(1))\n```\n\nour store state should conceptually be mutated to look something like this table:\n\n```lua\n{\n\tCoins = 1;\n}\n```\n\nAdditionally, we can nest tables in our store structure:\n\n```lua\nlocal InitialState = {\n\tPlayerStats = {Coins = 0};\n}\n\nlocal function Reducer(Action, GetState, SetState)\n\tif Action.Type == AddCoins.ActionName then\n\t\tlocal Coins = GetState(\&quot;PlayerStats\&quot;, \&quot;Coins\&quot;)\n\t\tSetState(\&quot;PlayerStats\&quot;, \&quot;Coins\&quot;, Coins + Action.Amount)\n\tend\nend\n```\n\n```cpp\nGenericDictionary InitialState = table(PlayerStats: table(Coins: 0));\n\nvoid Reducer(GenericDictionary Action, void GetState, SetState)\n{\n\tif Action.Type == AddCoins.ActionName\n\t{\n\t\tint Coins = GetState(L\&quot;PlayerStats\&quot;, L\&quot;Coins\&quot;);\n\t\tSetState(L\&quot;PlayerStats\&quot;, L\&quot;Coins\&quot;, Coins + Action.Amount);\n\t}\n}\n```\n\nIn the above example, we provide an aditional argument to `GetState` and `SetState`. These are just strings representing the path of nested keys leading to the exact value we want to get/set in our store.\n\nIf we kept this all in the same module, we may run into a problem when our tree becomes more complex:\n\n```lua\nlocal function Reducer(Action, GetState, SetState)\n\tif Action.Type == \&quot;DoSomethingInASpecificDomain\&quot; then\n\t\tSetState(\&quot;Path\&quot;, \&quot;To\&quot;, \&quot;Specific\&quot;, \&quot;Domain\&quot;, Value)\n\telseif  ...  then\n\t\t...\n\tend\nend\n```\n\n```cpp\nvoid Reducer(GenericDictionary Action, void GetState, SetState)\n{\n\tif Action.Type == L\&quot;DoSomethingInASpecificDomain\&quot;\n\t{\n\t\tSetState(L\&quot;Path\&quot;, L\&quot;To\&quot;, L\&quot;Specific\&quot;, L\&quot;Domain\&quot;, Action.Value);\n\t} elseif ...\n\t{\n\t\t...\n\t}\n}\n```\n\nThis can become very verbose. It would be much simpler if we could create a reducer that just deals with playerStats, and another reducer that just deals with some other domain.\n\nTo do this, you can use the `CombineReducers()` function. Let&#x27;s say we put our main reducer in a module called \&quot;RootReducer\&quot;, and nested reducers for playerStats underneath the root reducer:\n\n_________________\n\n### RootReducer ModuleScript\n\n```lua\nlocal ReplicatedStorage = game:GetService(\&quot;ReplicatedStorage\&quot;)\nlocal Helium = require(ReplicatedStorage.Helium)\nlocal PlayerStats = require(script.PlayerStats)\n\nlocal Reducer = Helium.CombineReducers({\n\tPlayerStats = PlayerStats.Reducer;\n})\n\nlocal InitialState = {\n\tPlayerStats = PlayerStats.InitialState;\n}\n\nreturn {\n\tReducer = Reducer;\n\tInitialState = InitialState;\n}\n```\n\n### RootReducer.PlayerStats ModuleScript\n\n```lua\nlocal function Reducer(Action, GetState, SetState)\n\tif Action.Type == \&quot;AddCoins\&quot; then\n\t\tlocal Coins = GetState(\&quot;Coins\&quot;)\n\t\tSetState(\&quot;Coins\&quot;, Coins + Action.Amount)\n\tend\nend\n\nlocal InitialState = {Coins = 0;}\nreturn {\n\tReducer = Reducer;\n\tInitialState = InitialState;\n}\n```\n\nIf we wanted to, we could subdivide this even further by making a reducer for coins, and use `CombineReducers()` in the PlayerStats module instead. The \&quot;coins\&quot; module would then look something like this:\n\n### RootReducer.PlayerStats.Coins ModuleScript\n\n```lua\nlocal function Reducer(Action, GetState, SetState)\n\tif Action.Type == \&quot;AddCoins\&quot; then\n\t\tSetState(GetState() + Action.Amount)\n\tend\nend\n\nlocal InitialState = 0\n\nreturn {\n\tReducer = Reducer;\n\tInitialState = InitialState;\n}\n```\n\nNow that we&#x27;ve separated the concerns of our reducers and actions, how do we actually create the store and have it interact with our application?\n\nHelium uses the function `Store.new(Reducer, InitialState)` for this.\nPutting it all together, we can create a very simple store that reduces a single value of \&quot;Coins\&quot;\n\n```lua\nlocal ReplicatedStorage = game:GetService(\&quot;ReplicatedStorage\&quot;)\nlocal Helium = require(ReplicatedStorage.Helium)\n\n-- Typically this would be put in a separate module called \&quot;Actions\&quot;\nlocal AddCoins = Helium.MakeActionCreator(\&quot;AddCoins\&quot;, function(Amount: number)\n\treturn {\n\t\tAmount = Amount;\n\t}\nend)\n\n-- Typically this would be put in a separate module called \&quot;Reducer\&quot; or \&quot;RootReducer\&quot;\nlocal function Reducer(Action, GetState, SetState)\n\tif Action.Type == AddCoins.ActionName then\n\t\tSetState(GetState() + Action.Amount)\n\tend\nend\n\nlocal InitialState = 0\nlocal CoinsStore = Helium.Store.new(Reducer, InitialState) -- You can also do Helium.CreateStore(Reducer, InitialState)\n\nprint(CoinsStore:GetState()) -- 0\n\nCoinsStore:Fire(AddCoins(10))\nprint(CoinsStore:GetState()) -- 10\n\nCoinsStore:Dispatch(AddCoins(10)) -- Dispatch is also valid\nprint(CoinsStore:GetState()) -- 20\n```\n\n```cpp\ntypedef GenericDictionary table&lt;LuaString, any&gt;;\nRbxInstance ReplicatedStorage = game::GetService @ ReplicatedStorage;\nGenericDictionary Helium = require(ReplicatedStorage.Helium);\n\nconst int INITIAL_STATE = 0;\n\n// Typically this would be put in a separate module called \&quot;Actions\&quot;\nGenericDictionary AddCoinsFunction(int Amount)\n{\n\treturn table(Amount: Amount);\n}\n\nvoid AddCoins = Helium.MakeActionCreator(L\&quot;AddCoins\&quot;, AddCoinsFunction);\n\n// Typically this would be put in a separate module called \&quot;Reducer\&quot; or \&quot;RootReducer\&quot;\nvoid Reducer(GenericDictionary Action, void GetState, SetState)\n{\n\tif Action.Type == AddCoins.ActionName\n\t{\n\t\tSetState(GetState() + Action.Amount);\n\t}\n}\n\nentry void Main(void)\n{\n\tGenericDictionary CoinsStore = Helium.Store.new(Reducer, INITIAL_STATE); // You can also do Helium.CreateStore(Reducer, InitialState)\n\tprint(CoinsStore::GetState()); // 0\n\n\tCoinsStore::Fire(AddCoins(10));\n\tprint(CoinsStore::GetState()); // 10\n\n\tCoinsStore::Dispatch(AddCoins(10)); // Dispatch is also valid\n\tprint(CoinsStore::GetState()); // 20\n}\n```&quot;,
+    &quot;source&quot;: {
+        &quot;line&quot;: 357,
+        &quot;path&quot;: &quot;src/Store.lua&quot;
+    }
+}</pre></details></div><div class="col col--3"><div class="tableOfContents_35-E thin-scrollbar"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#types" class="table-of-contents__link">Types</a></li><li><a href="#properties" class="table-of-contents__link">Properties</a></li><li><a href="#functions" class="table-of-contents__link">Functions</a><ul><li><a href="#Is" class="table-of-contents__link">.Is</a></li><li><a href="#new" class="table-of-contents__link">.new</a></li><li><a href="#ApplyMiddleware" class="table-of-contents__link">:ApplyMiddleware</a></li><li><a href="#Connect" class="table-of-contents__link">:Connect</a></li><li><a href="#Dispatch" class="table-of-contents__link">:Dispatch</a></li><li><a href="#Fire" class="table-of-contents__link">:Fire</a></li><li><a href="#GetState" class="table-of-contents__link">:GetState</a></li><li><a href="#InspectState" class="table-of-contents__link">:InspectState</a></li><li><a href="#SetState" class="table-of-contents__link">:SetState</a></li><li><a href="#Subscribe" class="table-of-contents__link">:Subscribe</a></li></ul></li></ul></div></div></div></div></main></div></div><footer class="footer footer--dark"><div class="container"><div class="footer__bottom text--center"><div class="footer__copyright">Copyright © 2021 howmanysmall. Built with Moonwave and Docusaurus.</div></div></div></footer></div>
+<script src="/Helium/assets/js/runtime~main.451f22ca.js"></script>
+<script src="/Helium/assets/js/main.136d6786.js"></script>
+</body>
+</html>

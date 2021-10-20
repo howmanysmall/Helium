@@ -1,0 +1,780 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="generator" content="Docusaurus v2.0.0-beta.6">
+<title data-react-helmet="true">Helium | Helium</title><meta data-react-helmet="true" property="og:title" content="Helium | Helium"><meta data-react-helmet="true" name="twitter:card" content="summary_large_image"><meta data-react-helmet="true" name="description" content="Helium is a library based on Rocrastinate with improvements for Luau as well as added features.
+
+:::info Rocrastinate
+Rocrastinate is a fantastic library that is unfortunatley not longer worked on. I&#x27;ve taken development of it into my own hands to keep it alive as it does a lot of things extremely well.
+:::"><meta data-react-helmet="true" property="og:description" content="Helium is a library based on Rocrastinate with improvements for Luau as well as added features.
+
+:::info Rocrastinate
+Rocrastinate is a fantastic library that is unfortunatley not longer worked on. I&#x27;ve taken development of it into my own hands to keep it alive as it does a lot of things extremely well.
+:::"><meta data-react-helmet="true" property="og:url" content="https://howmanysmall.github.io/Helium/api/Helium"><meta data-react-helmet="true" name="docusaurus_locale" content="en"><meta data-react-helmet="true" name="docusaurus_tag" content="default"><link data-react-helmet="true" rel="canonical" href="https://howmanysmall.github.io/Helium/api/Helium"><link data-react-helmet="true" rel="alternate" href="https://howmanysmall.github.io/Helium/api/Helium" hreflang="en"><link data-react-helmet="true" rel="alternate" href="https://howmanysmall.github.io/Helium/api/Helium" hreflang="x-default"><link rel="stylesheet" href="/Helium/assets/css/styles.3c0ff9e9.css">
+<link rel="preload" href="/Helium/assets/js/runtime~main.451f22ca.js" as="script">
+<link rel="preload" href="/Helium/assets/js/main.136d6786.js" as="script">
+</head>
+<body>
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){var t=null;try{t=localStorage.getItem("theme")}catch(t){}return t}();t(null!==e?e:"light")}()</script><div id="__docusaurus">
+<div><a href="#" class="skipToContent_1oUP">Skip to main content</a></div><nav class="navbar navbar--fixed-top"><div class="navbar__inner"><div class="navbar__items"><button aria-label="Navigation bar toggle" class="navbar__toggle clean-btn" type="button" tabindex="0"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/Helium/"><b class="navbar__title">Helium</b></a><a class="navbar__item navbar__link" href="/Helium/docs/intro">Docs</a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/Helium/api/">API</a></div><div class="navbar__items navbar__items--right"><a href="https://discord.gg/mhtGUS8" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link"><span>Discord<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_3J9K"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></span></a><a href="https://github.com/howmanysmall/Helium" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link"><span>GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_3J9K"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></span></a><div class="react-toggle toggle_3Zt9 react-toggle--disabled"><div class="react-toggle-track" role="button" tabindex="-1"><div class="react-toggle-track-check"><span class="toggle_71bT">🌜</span></div><div class="react-toggle-track-x"><span class="toggle_71bT">🌞</span></div><div class="react-toggle-thumb"></div></div><input type="checkbox" class="react-toggle-screenreader-only" aria-label="Switch between dark and light mode"></div><div class="navbar__search"><span aria-label="expand searchbar" role="button" class="search-icon" tabindex="0"></span><input type="search" id="search_input_react" placeholder="Press S to Search..." aria-label="Search" class="navbar__search-input search-bar"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div class="main-wrapper docPageContainer_2Kz0"><div class="docPage_1bdk"><div class="docSidebarContainer_1ykS"><div class="sidebar_15mo"><nav class="menu thin-scrollbar menu_Bmed menuWithAnnouncementBar_2WvA"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link menu__link--active" aria-current="page" href="/Helium/api/Helium">​Helium</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/Component">​Component</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/Store">​Store</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/BaseComponent">​Base​Component</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/Middleware">​Middleware</a></li></ul></nav><button type="button" title="Collapse sidebar" aria-label="Collapse sidebar" class="button button--secondary button--outline collapseSidebarButton_1CGd"><svg width="20" height="20" aria-hidden="true" class="collapseSidebarButtonIcon_3E-R"><g fill="#7a7a7a"><path d="M9.992 10.023c0 .2-.062.399-.172.547l-4.996 7.492a.982.982 0 01-.828.454H1c-.55 0-1-.453-1-1 0-.2.059-.403.168-.551l4.629-6.942L.168 3.078A.939.939 0 010 2.528c0-.548.45-.997 1-.997h2.996c.352 0 .649.18.828.45L9.82 9.472c.11.148.172.347.172.55zm0 0"></path><path d="M19.98 10.023c0 .2-.058.399-.168.547l-4.996 7.492a.987.987 0 01-.828.454h-3c-.547 0-.996-.453-.996-1 0-.2.059-.403.168-.551l4.625-6.942-4.625-6.945a.939.939 0 01-.168-.55 1 1 0 01.996-.997h3c.348 0 .649.18.828.45l4.996 7.492c.11.148.168.347.168.55zm0 0"></path></g></svg></button></div></div><main class="docMainContainer_28N5"><div class="container padding-vert--lg"><div class="row"><div class="col docItemCol_3WPG"><div class="docItemContainer_3XDu"><article><div class="member_qHIL markdown"><div class="tocCollapsible_1PrD theme-doc-toc-mobile tocMobile_3ryM"><button type="button" class="clean-btn tocCollapsibleButton_2O1e">On this page</button></div><header><h1 class="docTitle_1ddc" style="text-decoration:none"><span style="display:inline-block">Helium</span></h1><div class="luaClassTags_2Zrs"></div><div>
+<p>Helium is a library based on Rocrastinate with improvements for Luau as well as added features.</p>
+<div class="admonition admonition-info alert alert--info">
+  <div class="admonition-heading">
+    <h5><span class="admonition-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 14 16">
+          <path d="M7 2.3c3.14 0 5.7 2.56 5.7 5.7s-2.56 5.7-5.7 5.7A5.71 5.71 0 0 1 1.3 8c0-3.14 2.56-5.7 5.7-5.7zM7 1C3.14 1 0 4.14 0 8s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm1 3H6v5h2V4zm0 6H6v2h2v-2z"></path>
+        </svg></span>Rocrastinate</h5>
+  </div>
+  <div class="admonition-content">
+    <p>Rocrastinate is a fantastic library that is unfortunatley not longer worked on. I've taken development of it into my own hands to keep it alive as it does a lot of things extremely well.</p>
+  </div>
+</div>
+</div></header><h2><a aria-hidden="true" tabindex="-1" class="anchor anchor__h2 anchorWithStickyNavbar_31ik" id="types"></a>Types<a class="hash-link" href="#types" title="Direct link to heading">#</a></h2><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="ActionBase"></a><code style="text-decoration:none">ActionBase</code><a class="hash-link" href="#ActionBase" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/MakeActionCreator.lua#L13"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code class="purple__nFc">interface</code> <code>ActionBase {</code><div class="inset_2cJr"><div><code>Type: </code><code class="blue_2Afy">string</code><span class="inlineDescription_17uy">-- <span>
+<p>The type of action.</p>
+</span></span></div></div><code>}</code></div><div></div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="ActionCreatorTable"></a><code style="text-decoration:none">ActionCreatorTable</code><a class="hash-link" href="#ActionCreatorTable" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/MakeActionCreator.lua#L22"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code class="purple__nFc">interface</code> <code>ActionCreatorTable {</code><div class="inset_2cJr"><div><code>ActionName: </code><code class="blue_2Afy">string</code><span class="inlineDescription_17uy">-- <span>
+<p>The name of the action creator.</p>
+</span></span></div><div><code>Name: </code><code class="blue_2Afy">string</code><span class="inlineDescription_17uy">-- <span>
+<p>The name of the action creator.</p>
+</span></span></div></div><code>}</code></div><div>
+<p>The ActionCreatorTable has a metatable with <code>__call</code>, so you can use it as a function. It returns an ActionBase.</p>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="HeliumConfiguration"></a><code style="text-decoration:none">HeliumConfiguration</code><a class="hash-link" href="#HeliumConfiguration" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L44"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code class="purple__nFc">interface</code> <code>HeliumConfiguration {</code><div class="inset_2cJr"><div><code>ProfileRedraw: </code><code class="blue_2Afy">boolean?</code><span class="inlineDescription_17uy">-- <span>
+<p>Enables <code>debug.profilebegin</code> in the component redraw function.</p>
+</span></span></div><div><code>RunTypeChecking: </code><code class="blue_2Afy">boolean?</code><span class="inlineDescription_17uy">-- <span>
+<p>Enables type checking internally.</p>
+</span></span></div><div><code>SafeRedrawCheck: </code><code class="blue_2Afy">boolean?</code><span class="inlineDescription_17uy">-- <span>
+<p>Runs an <code>assert</code> check when <code>QueueRedraw</code> is called to validate that a component's RedrawBinding is correct.</p>
+</span></span></div><div><code>UseCombineReducersV2: </code><code class="blue_2Afy">boolean?</code><span class="inlineDescription_17uy">-- <span>
+<p>Enables using the V2 version of <code>CombineReducers</code>.</p>
+</span></span></div><div><code>UseSwitchStatementForQueueRedraw: </code><code class="blue_2Afy">boolean?</code><span class="inlineDescription_17uy">-- <span>
+<p>Enables using a switch statement for <code>QueueRedraw</code>. This won't be checked every <code>QueueRedraw</code> since performance is the goal here, only when <code>Component:Constructor</code> is called.</p>
+</span></span></div></div><code>}</code></div><div>
+<p>This is the interface used for configuring how Helium behaves internally.</p>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="RedrawBinding"></a><code style="text-decoration:none">RedrawBinding</code><a class="hash-link" href="#RedrawBinding" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Enum</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Enums.lua#L21"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code class="purple__nFc">interface</code> <code>RedrawBinding {</code><div class="inset_2cJr"><div><code>Heartbeat: </code><code class="blue_2Afy">&quot;Heartbeat&quot;</code><span class="inlineDescription_17uy">-- <span>
+<p>Redraw on the next <code>Heartbeat</code> step.</p>
+</span></span></div><div><code>RenderStep: </code><code class="blue_2Afy">&quot;RenderStep&quot;</code><span class="inlineDescription_17uy">-- <span>
+<p>Redraw on the next <code>RenderStep</code> step.</p>
+</span></span></div><div><code>RenderStepTwice: </code><code class="blue_2Afy">&quot;RenderStepTwice&quot;</code><span class="inlineDescription_17uy">-- <span>
+<p>Redraw on two <code>RenderStep</code> steps.</p>
+</span></span></div><div><code>Stepped: </code><code class="blue_2Afy">&quot;Stepped&quot;</code><span class="inlineDescription_17uy">-- <span>
+<p>Redraw on the next <code>Stepped</code> step.</p>
+</span></span></div></div><code>}</code></div><div>
+<p>An Enum representing on which binding the Component will be redrawn on.</p>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="ReducerFunction"></a><code style="text-decoration:none">ReducerFunction</code><a class="hash-link" href="#ReducerFunction" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L32"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code class="purple__nFc">type</code> <code>ReducerFunction = </code> <code class="green_3LnD">(</code><div class="inset_2cJr"><code>Action: </code><code class="blue_2Afy">BaseAction</code><code class="green_3LnD">,</code></div><div class="inset_2cJr"><code>GetState: </code><code class="purple__nFc">(</code><code class="blue_2Afy">...any</code><code class="purple__nFc">)</code><code class="purple__nFc"> → </code><code class="blue_2Afy">any</code><code class="green_3LnD">,</code></div><div class="inset_2cJr"><code>SetState: </code><code class="purple__nFc">(</code><code class="blue_2Afy">...any</code><code class="purple__nFc">)</code><code class="purple__nFc"> → </code><code class="purple__nFc">(</code><code class="purple__nFc">)</code></div><code class="green_3LnD">)</code><code class="green_3LnD"> → </code><code class="green_3LnD">(</code><code class="green_3LnD">)</code></div><div>
+<p>This is a function for reducing actions in the store.</p>
+</div><h2><a aria-hidden="true" tabindex="-1" class="anchor anchor__h2 anchorWithStickyNavbar_31ik" id="properties"></a>Properties<a class="hash-link" href="#properties" title="Direct link to heading">#</a></h2><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Children"></a><code style="text-decoration:none">Children</code><a class="hash-link" href="#Children" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Symbol</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Make.lua#L10"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.Children: </code> <code class="blue_2Afy">ChildrenSymbol</code></div><div>
+<p>This is a Symbol used to indicate the children for an Instance created using <code>Helium.Make</code>.</p>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Component"></a><code style="text-decoration:none">Component</code><a class="hash-link" href="#Component" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#70cc00;color:#70cc00">Class</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L248"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.Component: </code> <code class="blue_2Afy">Component</code></div><div>
+<p>This is the accessor for the <code>Component</code> object.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Component <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Component<span class="token punctuation">.</span><span class="token function">Extend</span><span class="token punctuation">(</span><span class="token string">"ComponentName"</span><span class="token punctuation">)</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="RedrawBinding"></a><code style="text-decoration:none">RedrawBinding</code><a class="hash-link" href="#RedrawBinding" title="Direct link to heading">#</a></h3><span class="badge_3ZFo" style="color:#e74c3c"><span class="badgeTooltip_2qiw">This item is read only and cannot be modified.</span><span class="badgeToolTipTail_2yaQ"><svg xmlns="http://www.w3.org/2000/svg" height="300px" width="300px" fill="#e74c3c" x="0px" y="0px" viewBox="0 0 96 96"><path d="M70.354,15.662h-7.496H25.566c-3.282,0-5.19-0.776-5.728-1.169v-1.456c0.538-0.393,2.445-1.168,5.728-1.168h46.479V8H25.566  c-4.776,0-9.594,1.468-9.594,4.747v61.458C15.972,86.645,20.328,88,37.495,88h42.535V15.662H70.354z"></path></svg> Read Only</span></span><span class="docTag_3qMS" style="border-color:#70cc00;color:#70cc00">Enums</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Enums.lua#L32"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.RedrawBinding: </code> <code class="blue_2Afy">RedrawBinding</code></div><div>
+<p>An <a href="https://github.com/howmanysmall/enumerator/" target="_blank">Enumerator</a> Enum containing all of the RedrawBindings.</p>
+<div class="admonition admonition-info alert alert--info">
+  <div class="admonition-heading">
+    <h5><span class="admonition-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 14 16">
+          <path d="M7 2.3c3.14 0 5.7 2.56 5.7 5.7s-2.56 5.7-5.7 5.7A5.71 5.71 0 0 1 1.3 8c0-3.14 2.56-5.7 5.7-5.7zM7 1C3.14 1 0 4.14 0 8s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm1 3H6v5h2V4zm0 6H6v2h2v-2z"></path>
+        </svg></span>Case Change</h5>
+  </div>
+  <div class="admonition-content">
+    <p>To keep consistent with the rest of the style of Helium, all the methods of Enumerator are PascalCase.</p>
+  </div>
+</div>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Store"></a><code style="text-decoration:none">Store</code><a class="hash-link" href="#Store" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#70cc00;color:#70cc00">Class</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L236"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.Store: </code> <code class="blue_2Afy">Store</code></div><div>
+<p>This is the accessor for the <code>Store</code> object.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+</code></pre>
+</div><h2><a aria-hidden="true" tabindex="-1" class="anchor anchor__h2 anchorWithStickyNavbar_31ik" id="functions"></a>Functions<a class="hash-link" href="#functions" title="Direct link to heading">#</a></h2><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="CombineReducers"></a><code style="text-decoration:none">CombineReducers</code><a class="hash-link" href="#CombineReducers" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Utility</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/CombineReducers/init.lua#L16"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">CombineReducers</code><code>(</code><div class="inset_2cJr"><div><code>ReducersMap: </code><code class="op_1JtD">{</code><code>[Key: </code><code>string]: </code><code class="blue_2Afy">ReducerFunction</code><code class="op_1JtD">}</code><span class="inlineDescription_17uy">-- <span>
+<p>The reducers map</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">ReducerFunction</code><span class="inlineDescription_17uy">-- <span>
+<p>A function that iterates through all the reducers and calls their respect GetState and SetState functions.</p>
+</span></span></div><div></div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="CreateStore"></a><code style="text-decoration:none">CreateStore</code><a class="hash-link" href="#CreateStore" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#2b8ab6;color:#2b8ab6">Shorthand</span><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Utility</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L57"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">CreateStore</code><code>(</code><div class="inset_2cJr"><div><code>Reducer: </code><code class="blue_2Afy">ReducerFunction</code><code>,</code><span class="inlineDescription_17uy">-- <span>
+<p>The reducer function.</p>
+</span></span></div><div><code>InitialState: </code><code class="blue_2Afy">NonNil</code><span class="inlineDescription_17uy">-- <span>
+<p>The initial state.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">Store</code></div><div>
+<p>This is a shorthand for <code>Helium.Store.new</code>.</p>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="InspectorMiddleware"></a><code style="text-decoration:none">InspectorMiddleware</code><a class="hash-link" href="#InspectorMiddleware" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#218c74;color:#218c74">Middleware</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L135"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">InspectorMiddleware</code><code>(</code><code>) → </code><code class="blue_2Afy">MiddlewareHandler</code><span class="inlineDescription_17uy">-- <span>
+<p>The handler code for the middleware.</p>
+</span></span></div><div>
+<p>Prints out the whole action being dispatched.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> AwesomeAction <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"AwesomeAction"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>ObjectName<span class="token punctuation">:</span> string<span class="token punctuation">,</span> IsAwesome<span class="token punctuation">:</span> boolean<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>
+		ObjectName <span class="token operator">=</span> ObjectName<span class="token punctuation">;</span>
+		IsAwesome <span class="token operator">=</span> IsAwesome<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> _<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> AwesomeAction<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span>Action<span class="token punctuation">.</span>ObjectName<span class="token punctuation">,</span> Action<span class="token punctuation">.</span>IsAwesome<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	LPlus <span class="token operator">=</span> <span class="token keyword">false</span><span class="token punctuation">;</span>
+	LPlusLight <span class="token operator">=</span> <span class="token keyword">false</span><span class="token punctuation">;</span>
+	Helium <span class="token operator">=</span> <span class="token keyword">false</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">:</span><span class="token function">ApplyMiddleware</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>InspectorMiddleware<span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AwesomeAction</span><span class="token punctuation">(</span><span class="token string">"LPlus"</span><span class="token punctuation">,</span> <span class="token keyword">true</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">--[[
+	Prints:
+		{
+			Type = "AwesomeAction";
+			ObjectName = "LPlus";
+			IsAwesome = true;
+		}
+]]</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="LoggerMiddleware"></a><code style="text-decoration:none">LoggerMiddleware</code><a class="hash-link" href="#LoggerMiddleware" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#218c74;color:#218c74">Middleware</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L164"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">LoggerMiddleware</code><code>(</code><code>) → </code><code class="blue_2Afy">MiddlewareHandler</code><span class="inlineDescription_17uy">-- <span>
+<p>The handler code for the middleware.</p>
+</span></span></div><div>
+<p>Prints out the action types of every action dispatched.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> AwesomeAction <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"AwesomeAction"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>ObjectName<span class="token punctuation">:</span> string<span class="token punctuation">,</span> IsAwesome<span class="token punctuation">:</span> boolean<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>
+		ObjectName <span class="token operator">=</span> ObjectName<span class="token punctuation">;</span>
+		IsAwesome <span class="token operator">=</span> IsAwesome<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> _<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> AwesomeAction<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span>Action<span class="token punctuation">.</span>ObjectName<span class="token punctuation">,</span> Action<span class="token punctuation">.</span>IsAwesome<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	LPlus <span class="token operator">=</span> <span class="token keyword">false</span><span class="token punctuation">;</span>
+	LPlusLight <span class="token operator">=</span> <span class="token keyword">false</span><span class="token punctuation">;</span>
+	Helium <span class="token operator">=</span> <span class="token keyword">false</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">:</span><span class="token function">ApplyMiddleware</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>InspectorMiddleware<span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AwesomeAction</span><span class="token punctuation">(</span><span class="token string">"LPlus"</span><span class="token punctuation">,</span> <span class="token keyword">true</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- Prints: "AwesomeAction"</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Make"></a><code style="text-decoration:none">Make</code><a class="hash-link" href="#Make" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Utility</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Make.lua#L52"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">Make</code><code>(</code><div class="inset_2cJr"><div><code>ClassName: </code><code class="blue_2Afy">T</code><code>,</code><span class="inlineDescription_17uy">-- <span>
+<p>The ClassName of the Instance you are creating.</p>
+</span></span></div><div><code>Properties: </code><code class="op_1JtD">{</code><code>[string]: </code><code class="blue_2Afy">any,</code><code>[Children]?: </code><code class="op_1JtD">{</code><code class="blue_2Afy">Instance</code><code class="op_1JtD">}</code><code class="op_1JtD">}</code><code class="blue_2Afy">,</code><span class="inlineDescription_17uy">-- <span>
+<p>The properties of the Instance you are creating.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">Instance</code><code class="op_1JtD">&lt;</code><code class="blue_2Afy">T</code><code class="op_1JtD">&gt;</code><span class="inlineDescription_17uy">-- <span>
+<p>The created Instance.</p>
+</span></span></div><div>
+<p>
+  This is a function similar to <code>Fusion.New</code> for creating Instances. While I don't personally suggest it,
+  it is here if you want to use it. The <code>Parent</code> property is always set last if it exists in the table.
+</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Frame<span class="token punctuation">:</span> Frame <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">Make</span><span class="token punctuation">(</span><span class="token string">"Frame"</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	AnchorPoint <span class="token operator">=</span> Vector2<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token number">0.5</span><span class="token punctuation">,</span> <span class="token number">0.5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	Position <span class="token operator">=</span> UDim2<span class="token punctuation">.</span><span class="token function">fromScale</span><span class="token punctuation">(</span><span class="token number">0.5</span><span class="token punctuation">,</span> <span class="token number">0.5</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	Size <span class="token operator">=</span> UDim2<span class="token punctuation">.</span><span class="token function">fromOffset</span><span class="token punctuation">(</span><span class="token number">140</span><span class="token punctuation">,</span> <span class="token number">40</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+	<span class="token punctuation">[</span>Helium<span class="token punctuation">.</span>Children<span class="token punctuation">]</span> <span class="token operator">=</span> <span class="token punctuation">{</span>
+		Helium<span class="token punctuation">.</span><span class="token function">Make</span><span class="token punctuation">(</span><span class="token string">"TextButton"</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+			Size <span class="token operator">=</span> UDim2<span class="token punctuation">.</span><span class="token function">fromScale</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">,</span> <span class="token number">1</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+			Text <span class="token operator">=</span> <span class="token string">"Hello World!"</span><span class="token punctuation">;</span>
+			Activated <span class="token operator">=</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+				<span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"Button was activated!"</span><span class="token punctuation">)</span>
+			<span class="token keyword">end</span><span class="token punctuation">;</span>
+		<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+	<span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+Frame<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="MakeActionCreator"></a><code style="text-decoration:none">MakeActionCreator</code><a class="hash-link" href="#MakeActionCreator" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Utility</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/MakeActionCreator.lua#L99"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">MakeActionCreator</code><code>(</code><div class="inset_2cJr"><div><code>ActionName: </code><code class="blue_2Afy">string</code><code>,</code><span class="inlineDescription_17uy">-- <span>
+<p>The name of the Action.</p>
+</span></span></div><div><code>Function: </code><code class="green_3LnD">(</code><code class="blue_2Afy">...any</code><code class="green_3LnD">)</code><code class="green_3LnD"> → </code><code class="op_1JtD">{</code><code>[any]: </code><code class="blue_2Afy">any</code><code class="op_1JtD">}</code><span class="inlineDescription_17uy">-- <span>
+<p>The function that creates the action.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">ActionCreatorTable</code><span class="inlineDescription_17uy">-- <span>
+<p>The action creator.</p>
+</span></span></div><div>
+<p>Action creators are helper objects that will generate actions from provided data and automatically populate the <code>Type</code> field.</p>
+<p>Actions are structured in a way that they always have a <code>Type</code> field. They will often have some other values as well.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> AwesomeAction <span class="token operator">=</span> <span class="token punctuation">{</span>
+	Type <span class="token operator">=</span> <span class="token string">"AwesomeAction"</span><span class="token punctuation">;</span>
+
+	ArgumentName <span class="token operator">=</span> <span class="token string">"LPlus"</span><span class="token punctuation">;</span>
+	IsAwesome <span class="token operator">=</span> <span class="token keyword">true</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre>
+<p>You can generate an action from a function, but you must provide the <code>Type</code> field yourself.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">CreateAwesomeAction</span><span class="token punctuation">(</span>ArgumentName<span class="token punctuation">:</span> string<span class="token punctuation">,</span> IsAwesome<span class="token punctuation">:</span> boolean<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>
+		Type <span class="token operator">=</span> <span class="token string">"AwesomeAction"</span><span class="token punctuation">;</span>
+
+		ArgumentName <span class="token operator">=</span> ArgumentName<span class="token punctuation">;</span>
+		IsAwesome <span class="token operator">=</span> IsAwesome<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token keyword">end</span>
+</code></pre>
+<p><code>MakeActionCreator</code> is similar, but it will automatically populate the <code>Type</code> field using the first argument of the constructor function.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> CreateAwesomeAction <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"AwesomeAction"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>ArgumentName<span class="token punctuation">:</span> string<span class="token punctuation">,</span> IsAwesome<span class="token punctuation">:</span> boolean<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>
+		ArgumentName <span class="token operator">=</span> ArgumentName<span class="token punctuation">;</span>
+		IsAwesome <span class="token operator">=</span> IsAwesome<span class="token punctuation">;</span>
+	<span class="token punctuation">}</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+</code></pre>
+<p>This can then be used in the Store reducer function.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> CreateAwesomeAction <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">"CreateAwesomeAction"</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> _<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> CreateAwesomeAction<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span>Action<span class="token punctuation">.</span>ArgumentName<span class="token punctuation">,</span> Action<span class="token punctuation">.</span>IsAwesome<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+	LPlus <span class="token operator">=</span> <span class="token keyword">false</span><span class="token punctuation">;</span>
+	LPlusLight <span class="token operator">=</span> <span class="token keyword">false</span><span class="token punctuation">;</span>
+	Helium <span class="token operator">=</span> <span class="token keyword">false</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">CreateAwesomeAction</span><span class="token punctuation">(</span><span class="token string">"LPlus"</span><span class="token punctuation">,</span> <span class="token keyword">true</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">CreateAwesomeAction</span><span class="token punctuation">(</span><span class="token string">"Helium"</span><span class="token punctuation">,</span> <span class="token keyword">true</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">CreateAwesomeAction</span><span class="token punctuation">(</span><span class="token string">"LPlusLight"</span><span class="token punctuation">,</span> <span class="token keyword">false</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token function">print</span><span class="token punctuation">(</span>Store<span class="token punctuation">:</span><span class="token function">InspectState</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token comment">--[[
+	Prints:
+		{
+			Helium = true;
+			LPlus = true;
+			LPlusLight = false;
+		}
+]]</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="SetConfig"></a><code style="text-decoration:none">SetConfig</code><a class="hash-link" href="#SetConfig" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Configuration</span><span class="docTag_3qMS" style="border-color:#2b8ab6;color:#2b8ab6">Shorthand</span><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Utility</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L97"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">SetConfig</code><code>(</code><div class="inset_2cJr"><div><code>ConfigurationValues: </code><code class="blue_2Afy">HeliumConfiguration</code><span class="inlineDescription_17uy">-- <span>
+<p>The new configuration.</p>
+</span></span></div></div><code>) → </code><code>(</code><code>)</code></div><div>
+<p>This is a shorthand for <code>Helium.SetGlobalConfiguration</code>.</p>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="SetConfiguration"></a><code style="text-decoration:none">SetConfiguration</code><a class="hash-link" href="#SetConfiguration" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Configuration</span><span class="docTag_3qMS" style="border-color:#2b8ab6;color:#2b8ab6">Shorthand</span><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Utility</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L87"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">SetConfiguration</code><code>(</code><div class="inset_2cJr"><div><code>ConfigurationValues: </code><code class="blue_2Afy">HeliumConfiguration</code><span class="inlineDescription_17uy">-- <span>
+<p>The new configuration.</p>
+</span></span></div></div><code>) → </code><code>(</code><code>)</code></div><div>
+<p>This is a shorthand for <code>Helium.SetGlobalConfiguration</code>.</p>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="SetGlobalConfig"></a><code style="text-decoration:none">SetGlobalConfig</code><a class="hash-link" href="#SetGlobalConfig" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Configuration</span><span class="docTag_3qMS" style="border-color:#2b8ab6;color:#2b8ab6">Shorthand</span><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Utility</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L77"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">SetGlobalConfig</code><code>(</code><div class="inset_2cJr"><div><code>ConfigurationValues: </code><code class="blue_2Afy">HeliumConfiguration</code><span class="inlineDescription_17uy">-- <span>
+<p>The new configuration.</p>
+</span></span></div></div><code>) → </code><code>(</code><code>)</code></div><div>
+<p>This is a shorthand for <code>Helium.SetGlobalConfiguration</code>.</p>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="SetGlobalConfiguration"></a><code style="text-decoration:none">SetGlobalConfiguration</code><a class="hash-link" href="#SetGlobalConfiguration" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Configuration</span><span class="docTag_3qMS" style="border-color:#dc0073;color:#dc0073">Utility</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L67"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">SetGlobalConfiguration</code><code>(</code><div class="inset_2cJr"><div><code>ConfigurationValues: </code><code class="blue_2Afy">HeliumConfiguration</code><span class="inlineDescription_17uy">-- <span>
+<p>The new configuration.</p>
+</span></span></div></div><code>) → </code><code>(</code><code>)</code></div><div>
+<p>This function is used to set the configuration of how Helium behaves.</p>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="SpunkMiddleware"></a><code style="text-decoration:none">SpunkMiddleware</code><a class="hash-link" href="#SpunkMiddleware" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#218c74;color:#218c74">Middleware</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L195"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">SpunkMiddleware</code><code>(</code><div class="inset_2cJr"><div><code>Store: </code><code class="blue_2Afy">Store</code><span class="inlineDescription_17uy">-- <span>
+<p>The Store of the middleware.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">MiddlewareHandler</code><span class="inlineDescription_17uy">-- <span>
+<p>The handler code for the middleware.</p>
+</span></span></div><div>
+<p>
+  Like <code>ThunkMiddleware</code>, allows functions to be dispatched. The only difference is that the functions being dispatched will be spawned
+  immediately in a separate thread. This could be more ideal for Roblox development as opposed to JavaScript do to the lack of Promise objects.
+</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">FetchCoins</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token keyword">function</span><span class="token punctuation">(</span>Dispatch<span class="token punctuation">,</span> GetState<span class="token punctuation">)</span>
+		<span class="token comment">-- Where we would normally return an action here, we instead return a spawned thunk that defers our change in state.</span>
+		<span class="token keyword">local</span> Coins <span class="token operator">=</span> ReplicatedStorage<span class="token punctuation">.</span>GetCoins<span class="token punctuation">:</span><span class="token function">InvokeServer</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+		<span class="token function">Dispatch</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+			Type <span class="token operator">=</span> <span class="token string">"SetCoins"</span><span class="token punctuation">;</span>
+			Value <span class="token operator">=</span> Coins<span class="token punctuation">;</span>
+		<span class="token punctuation">}</span><span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> _<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> <span class="token string">"SetCoins"</span> <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"Coins"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> InitialState<span class="token punctuation">)</span><span class="token punctuation">:</span><span class="token function">ApplyMiddleware</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>SpunkMiddleware<span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">FetchCoins</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre>
+</div><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="ThunkMiddleware"></a><code style="text-decoration:none">ThunkMiddleware</code><a class="hash-link" href="#ThunkMiddleware" title="Direct link to heading">#</a></h3><span class="docTag_3qMS" style="border-color:#218c74;color:#218c74">Middleware</span><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/init.lua#L224"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Helium.</code><code class="green_3LnD">ThunkMiddleware</code><code>(</code><div class="inset_2cJr"><div><code>Store: </code><code class="blue_2Afy">Store</code><span class="inlineDescription_17uy">-- <span>
+<p>The Store of the middleware.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">MiddlewareHandler</code><span class="inlineDescription_17uy">-- <span>
+<p>The handler code for the middleware.</p>
+</span></span></div><div>
+<p>
+  Like its Redux counterpart, thunk middleware allows functions to be dispatched as regular actions. When a function is encountered
+  by the middleware in place of an action, that function will be intercepted and called with the arguments <code>MyThunk(Dispatch, GetState)</code>.
+</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token keyword">function</span><span class="token punctuation">(</span>Dispatch<span class="token punctuation">,</span> GetState<span class="token punctuation">)</span>
+		<span class="token function">Dispatch</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+			Type <span class="token operator">=</span> <span class="token string">"SetCoins"</span><span class="token punctuation">;</span>
+			Value <span class="token operator">=</span> math<span class="token punctuation">.</span><span class="token function">random</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+		<span class="token punctuation">}</span><span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span>Action<span class="token punctuation">,</span> _<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> <span class="token string">"SetCoins"</span> <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"Coins"</span><span class="token punctuation">,</span> Action<span class="token punctuation">.</span>Value<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> InitialState<span class="token punctuation">)</span><span class="token punctuation">:</span><span class="token function">ApplyMiddleware</span><span class="token punctuation">(</span>Helium<span class="token punctuation">.</span>ThunkMiddleware<span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+</code></pre>
+</div></div></article></div><details><summary>Show raw api</summary><pre style="max-width:100%;white-space:pre-wrap">{
+    &quot;functions&quot;: [
+        {
+            &quot;name&quot;: &quot;CombineReducers&quot;,
+            &quot;desc&quot;: &quot;&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;ReducersMap&quot;,
+                    &quot;desc&quot;: &quot;The reducers map&quot;,
+                    &quot;lua_type&quot;: &quot;{[Key: string]: ReducerFunction}&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;A function that iterates through all the reducers and calls their respect GetState and SetState functions.&quot;,
+                    &quot;lua_type&quot;: &quot;ReducerFunction&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Utility&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 16,
+                &quot;path&quot;: &quot;src/CombineReducers/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;CreateStore&quot;,
+            &quot;desc&quot;: &quot;This is a shorthand for `Helium.Store.new`.&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;Reducer&quot;,
+                    &quot;desc&quot;: &quot;The reducer function.&quot;,
+                    &quot;lua_type&quot;: &quot;ReducerFunction&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;InitialState&quot;,
+                    &quot;desc&quot;: &quot;The initial state.&quot;,
+                    &quot;lua_type&quot;: &quot;NonNil&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;&quot;,
+                    &quot;lua_type&quot;: &quot;Store&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Shorthand&quot;,
+                &quot;Utility&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 57,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;SetGlobalConfiguration&quot;,
+            &quot;desc&quot;: &quot;This function is used to set the configuration of how Helium behaves.&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;ConfigurationValues&quot;,
+                    &quot;desc&quot;: &quot;The new configuration.&quot;,
+                    &quot;lua_type&quot;: &quot;HeliumConfiguration&quot;
+                }
+            ],
+            &quot;returns&quot;: [],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Configuration&quot;,
+                &quot;Utility&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 67,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;SetGlobalConfig&quot;,
+            &quot;desc&quot;: &quot;This is a shorthand for `Helium.SetGlobalConfiguration`.&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;ConfigurationValues&quot;,
+                    &quot;desc&quot;: &quot;The new configuration.&quot;,
+                    &quot;lua_type&quot;: &quot;HeliumConfiguration&quot;
+                }
+            ],
+            &quot;returns&quot;: [],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Configuration&quot;,
+                &quot;Shorthand&quot;,
+                &quot;Utility&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 77,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;SetConfiguration&quot;,
+            &quot;desc&quot;: &quot;This is a shorthand for `Helium.SetGlobalConfiguration`.&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;ConfigurationValues&quot;,
+                    &quot;desc&quot;: &quot;The new configuration.&quot;,
+                    &quot;lua_type&quot;: &quot;HeliumConfiguration&quot;
+                }
+            ],
+            &quot;returns&quot;: [],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Configuration&quot;,
+                &quot;Shorthand&quot;,
+                &quot;Utility&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 87,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;SetConfig&quot;,
+            &quot;desc&quot;: &quot;This is a shorthand for `Helium.SetGlobalConfiguration`.&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;ConfigurationValues&quot;,
+                    &quot;desc&quot;: &quot;The new configuration.&quot;,
+                    &quot;lua_type&quot;: &quot;HeliumConfiguration&quot;
+                }
+            ],
+            &quot;returns&quot;: [],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Configuration&quot;,
+                &quot;Shorthand&quot;,
+                &quot;Utility&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 97,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;InspectorMiddleware&quot;,
+            &quot;desc&quot;: &quot;Prints out the whole action being dispatched.\n\n```lua\nlocal AwesomeAction = Helium.MakeActionCreator(\&quot;AwesomeAction\&quot;, function(ObjectName: string, IsAwesome: boolean)\n\treturn {\n\t\tObjectName = ObjectName;\n\t\tIsAwesome = IsAwesome;\n\t}\nend)\n\nlocal Store = Helium.Store.new(function(Action, _, SetState)\n\tif Action.Type == AwesomeAction.ActionName then\n\t\tSetState(Action.ObjectName, Action.IsAwesome)\n\tend\nend, {\n\tLPlus = false;\n\tLPlusLight = false;\n\tHelium = false;\n}):ApplyMiddleware(Helium.InspectorMiddleware)\n\nStore:Fire(AwesomeAction(\&quot;LPlus\&quot;, true))\n--[[\n\tPrints:\n\t\t{\n\t\t\tType = \&quot;AwesomeAction\&quot;;\n\t\t\tObjectName = \&quot;LPlus\&quot;;\n\t\t\tIsAwesome = true;\n\t\t}\n]]\n```&quot;,
+            &quot;params&quot;: [],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;The handler code for the middleware.&quot;,
+                    &quot;lua_type&quot;: &quot;MiddlewareHandler&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Middleware&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 135,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;LoggerMiddleware&quot;,
+            &quot;desc&quot;: &quot;Prints out the action types of every action dispatched.\n\n```lua\nlocal AwesomeAction = Helium.MakeActionCreator(\&quot;AwesomeAction\&quot;, function(ObjectName: string, IsAwesome: boolean)\n\treturn {\n\t\tObjectName = ObjectName;\n\t\tIsAwesome = IsAwesome;\n\t}\nend)\n\nlocal Store = Helium.Store.new(function(Action, _, SetState)\n\tif Action.Type == AwesomeAction.ActionName then\n\t\tSetState(Action.ObjectName, Action.IsAwesome)\n\tend\nend, {\n\tLPlus = false;\n\tLPlusLight = false;\n\tHelium = false;\n}):ApplyMiddleware(Helium.InspectorMiddleware)\n\nStore:Fire(AwesomeAction(\&quot;LPlus\&quot;, true)) -- Prints: \&quot;AwesomeAction\&quot;\n```&quot;,
+            &quot;params&quot;: [],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;The handler code for the middleware.&quot;,
+                    &quot;lua_type&quot;: &quot;MiddlewareHandler&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Middleware&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 164,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;SpunkMiddleware&quot;,
+            &quot;desc&quot;: &quot;Like `ThunkMiddleware`, allows functions to be dispatched. The only difference is that the functions being dispatched will be spawned\nimmediately in a separate thread. This could be more ideal for Roblox development as opposed to JavaScript do to the lack of Promise objects.\n\n```lua\nlocal function FetchCoins()\n\treturn function(Dispatch, GetState)\n\t\t-- Where we would normally return an action here, we instead return a spawned thunk that defers our change in state.\n\t\tlocal Coins = ReplicatedStorage.GetCoins:InvokeServer()\n\t\tDispatch({\n\t\t\tType = \&quot;SetCoins\&quot;;\n\t\t\tValue = Coins;\n\t\t})\n\tend\nend\n\nlocal Store = Helium.Store.new(function(Action, _, SetState)\n\tif Action.Type == \&quot;SetCoins\&quot; then\n\t\tSetState(\&quot;Coins\&quot;, Action.Value)\n\tend\nend, InitialState):ApplyMiddleware(Helium.SpunkMiddleware)\n\nStore:Fire(FetchCoins())\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;Store&quot;,
+                    &quot;desc&quot;: &quot;The Store of the middleware.&quot;,
+                    &quot;lua_type&quot;: &quot;Store&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;The handler code for the middleware.&quot;,
+                    &quot;lua_type&quot;: &quot;MiddlewareHandler&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Middleware&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 195,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;ThunkMiddleware&quot;,
+            &quot;desc&quot;: &quot;Like its Redux counterpart, thunk middleware allows functions to be dispatched as regular actions. When a function is encountered\nby the middleware in place of an action, that function will be intercepted and called with the arguments `MyThunk(Dispatch, GetState)`.\n\n```lua\nlocal function AddCoins()\n\treturn function(Dispatch, GetState)\n\t\tDispatch({\n\t\t\tType = \&quot;SetCoins\&quot;;\n\t\t\tValue = math.random(100);\n\t\t})\n\tend\nend\n\nlocal Store = Helium.Store.new(function(Action, _, SetState)\n\tif Action.Type == \&quot;SetCoins\&quot; then\n\t\tSetState(\&quot;Coins\&quot;, Action.Value)\n\tend\nend, InitialState):ApplyMiddleware(Helium.ThunkMiddleware)\n\nStore:Fire(AddCoins())\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;Store&quot;,
+                    &quot;desc&quot;: &quot;The Store of the middleware.&quot;,
+                    &quot;lua_type&quot;: &quot;Store&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;The handler code for the middleware.&quot;,
+                    &quot;lua_type&quot;: &quot;MiddlewareHandler&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Middleware&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 224,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Make&quot;,
+            &quot;desc&quot;: &quot;This is a function similar to `Fusion.New` for creating Instances. While I don&#x27;t personally suggest it,\nit is here if you want to use it. The `Parent` property is always set last if it exists in the table.\n\n```lua\nlocal Frame: Frame = Helium.Make(\&quot;Frame\&quot;, {\n\tAnchorPoint = Vector2.new(0.5, 0.5);\n\tPosition = UDim2.fromScale(0.5, 0.5);\n\tSize = UDim2.fromOffset(140, 40);\n\n\t[Helium.Children] = {\n\t\tHelium.Make(\&quot;TextButton\&quot;, {\n\t\t\tSize = UDim2.fromScale(1, 1);\n\t\t\tText = \&quot;Hello World!\&quot;;\n\t\t\tActivated = function()\n\t\t\t\tprint(\&quot;Button was activated!\&quot;)\n\t\t\tend;\n\t\t});\n\t};\n})\n\nFrame:Destroy()\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;ClassName&quot;,
+                    &quot;desc&quot;: &quot;The ClassName of the Instance you are creating.&quot;,
+                    &quot;lua_type&quot;: &quot;T&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;Properties&quot;,
+                    &quot;desc&quot;: &quot;The properties of the Instance you are creating.&quot;,
+                    &quot;lua_type&quot;: &quot;{[string]: any, [Children]?: {Instance}},&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;The created Instance.&quot;,
+                    &quot;lua_type&quot;: &quot;Instance&lt;T&gt;&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Utility&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 52,
+                &quot;path&quot;: &quot;src/Make.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;MakeActionCreator&quot;,
+            &quot;desc&quot;: &quot;Action creators are helper objects that will generate actions from provided data and automatically populate the `Type` field.\n\nActions are structured in a way that they always have a `Type` field. They will often have some other values as well.\n\n```lua\nlocal AwesomeAction = {\n\tType = \&quot;AwesomeAction\&quot;;\n\n\tArgumentName = \&quot;LPlus\&quot;;\n\tIsAwesome = true;\n}\n```\n\nYou can generate an action from a function, but you must provide the `Type` field yourself.\n\n```lua\nlocal function CreateAwesomeAction(ArgumentName: string, IsAwesome: boolean)\n\treturn {\n\t\tType = \&quot;AwesomeAction\&quot;;\n\n\t\tArgumentName = ArgumentName;\n\t\tIsAwesome = IsAwesome;\n\t}\nend\n```\n\n`MakeActionCreator` is similar, but it will automatically populate the `Type` field using the first argument of the constructor function.\n\n```lua\nlocal CreateAwesomeAction = Helium.MakeActionCreator(\&quot;AwesomeAction\&quot;, function(ArgumentName: string, IsAwesome: boolean)\n\treturn {\n\t\tArgumentName = ArgumentName;\n\t\tIsAwesome = IsAwesome;\n\t}\nend)\n```\n\nThis can then be used in the Store reducer function.\n\n```lua\nlocal CreateAwesomeAction = require(\&quot;CreateAwesomeAction\&quot;)\n\nlocal Store = Helium.Store.new(function(Action, _, SetState)\n\tif Action.Type == CreateAwesomeAction.ActionName then\n\t\tSetState(Action.ArgumentName, Action.IsAwesome)\n\tend\nend, {\n\tLPlus = false;\n\tLPlusLight = false;\n\tHelium = false;\n})\n\nStore:Fire(CreateAwesomeAction(\&quot;LPlus\&quot;, true))\nStore:Fire(CreateAwesomeAction(\&quot;Helium\&quot;, true))\nStore:Fire(CreateAwesomeAction(\&quot;LPlusLight\&quot;, false))\n\nprint(Store:InspectState())\n--[[\n\tPrints:\n\t\t{\n\t\t\tHelium = true;\n\t\t\tLPlus = true;\n\t\t\tLPlusLight = false;\n\t\t}\n]]\n```&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;ActionName&quot;,
+                    &quot;desc&quot;: &quot;The name of the Action.&quot;,
+                    &quot;lua_type&quot;: &quot;string&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;Function&quot;,
+                    &quot;desc&quot;: &quot;The function that creates the action.&quot;,
+                    &quot;lua_type&quot;: &quot;(...any) -&gt; {[any]: any}&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;The action creator.&quot;,
+                    &quot;lua_type&quot;: &quot;ActionCreatorTable&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;tags&quot;: [
+                &quot;Utility&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 99,
+                &quot;path&quot;: &quot;src/MakeActionCreator.lua&quot;
+            }
+        }
+    ],
+    &quot;properties&quot;: [
+        {
+            &quot;name&quot;: &quot;RedrawBinding&quot;,
+            &quot;desc&quot;: &quot;An [Enumerator](https://github.com/howmanysmall/enumerator/) Enum containing all of the RedrawBindings.\n\n:::info Case Change\nTo keep consistent with the rest of the style of Helium, all the methods of Enumerator are PascalCase.\n:::&quot;,
+            &quot;lua_type&quot;: &quot;RedrawBinding&quot;,
+            &quot;tags&quot;: [
+                &quot;Enums&quot;
+            ],
+            &quot;readonly&quot;: true,
+            &quot;source&quot;: {
+                &quot;line&quot;: 32,
+                &quot;path&quot;: &quot;src/Enums.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Store&quot;,
+            &quot;desc&quot;: &quot;This is the accessor for the `Store` object.\n\n```lua\nlocal Store = Helium.Store.new(function() end, {})\n```&quot;,
+            &quot;lua_type&quot;: &quot;Store&quot;,
+            &quot;tags&quot;: [
+                &quot;Class&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 236,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Component&quot;,
+            &quot;desc&quot;: &quot;This is the accessor for the `Component` object.\n\n```lua\nlocal Component = Helium.Component.Extend(\&quot;ComponentName\&quot;)\n```&quot;,
+            &quot;lua_type&quot;: &quot;Component&quot;,
+            &quot;tags&quot;: [
+                &quot;Class&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 248,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Children&quot;,
+            &quot;desc&quot;: &quot;This is a Symbol used to indicate the children for an Instance created using `Helium.Make`.&quot;,
+            &quot;lua_type&quot;: &quot;ChildrenSymbol&quot;,
+            &quot;tags&quot;: [
+                &quot;Symbol&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 10,
+                &quot;path&quot;: &quot;src/Make.lua&quot;
+            }
+        }
+    ],
+    &quot;types&quot;: [
+        {
+            &quot;name&quot;: &quot;RedrawBinding&quot;,
+            &quot;desc&quot;: &quot;An Enum representing on which binding the Component will be redrawn on.&quot;,
+            &quot;fields&quot;: [
+                {
+                    &quot;name&quot;: &quot;Heartbeat&quot;,
+                    &quot;lua_type&quot;: &quot;\&quot;Heartbeat\&quot;&quot;,
+                    &quot;desc&quot;: &quot;Redraw on the next `Heartbeat` step.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;RenderStep&quot;,
+                    &quot;lua_type&quot;: &quot;\&quot;RenderStep\&quot;&quot;,
+                    &quot;desc&quot;: &quot;Redraw on the next `RenderStep` step.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;RenderStepTwice&quot;,
+                    &quot;lua_type&quot;: &quot;\&quot;RenderStepTwice\&quot;&quot;,
+                    &quot;desc&quot;: &quot;Redraw on two `RenderStep` steps.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;Stepped&quot;,
+                    &quot;lua_type&quot;: &quot;\&quot;Stepped\&quot;&quot;,
+                    &quot;desc&quot;: &quot;Redraw on the next `Stepped` step.&quot;
+                }
+            ],
+            &quot;tags&quot;: [
+                &quot;Enum&quot;
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 21,
+                &quot;path&quot;: &quot;src/Enums.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;ReducerFunction&quot;,
+            &quot;desc&quot;: &quot;This is a function for reducing actions in the store.&quot;,
+            &quot;lua_type&quot;: &quot;(Action: BaseAction, GetState: (...any) -&gt; any, SetState: (...any) -&gt; ()) -&gt; ()&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 32,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;HeliumConfiguration&quot;,
+            &quot;desc&quot;: &quot;This is the interface used for configuring how Helium behaves internally.&quot;,
+            &quot;fields&quot;: [
+                {
+                    &quot;name&quot;: &quot;ProfileRedraw&quot;,
+                    &quot;lua_type&quot;: &quot;boolean?&quot;,
+                    &quot;desc&quot;: &quot;Enables `debug.profilebegin` in the component redraw function.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;RunTypeChecking&quot;,
+                    &quot;lua_type&quot;: &quot;boolean?&quot;,
+                    &quot;desc&quot;: &quot;Enables type checking internally.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;SafeRedrawCheck&quot;,
+                    &quot;lua_type&quot;: &quot;boolean?&quot;,
+                    &quot;desc&quot;: &quot;Runs an `assert` check when `QueueRedraw` is called to validate that a component&#x27;s RedrawBinding is correct.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;UseCombineReducersV2&quot;,
+                    &quot;lua_type&quot;: &quot;boolean?&quot;,
+                    &quot;desc&quot;: &quot;Enables using the V2 version of `CombineReducers`.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;UseSwitchStatementForQueueRedraw&quot;,
+                    &quot;lua_type&quot;: &quot;boolean?&quot;,
+                    &quot;desc&quot;: &quot;Enables using a switch statement for `QueueRedraw`. This won&#x27;t be checked every `QueueRedraw` since performance is the goal here, only when `Component:Constructor` is called.&quot;
+                }
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 44,
+                &quot;path&quot;: &quot;src/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;ActionBase&quot;,
+            &quot;desc&quot;: &quot;&quot;,
+            &quot;fields&quot;: [
+                {
+                    &quot;name&quot;: &quot;Type&quot;,
+                    &quot;lua_type&quot;: &quot;string&quot;,
+                    &quot;desc&quot;: &quot;The type of action.&quot;
+                }
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 13,
+                &quot;path&quot;: &quot;src/MakeActionCreator.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;ActionCreatorTable&quot;,
+            &quot;desc&quot;: &quot;The ActionCreatorTable has a metatable with `__call`, so you can use it as a function. It returns an ActionBase.&quot;,
+            &quot;fields&quot;: [
+                {
+                    &quot;name&quot;: &quot;ActionName&quot;,
+                    &quot;lua_type&quot;: &quot;string&quot;,
+                    &quot;desc&quot;: &quot;The name of the action creator.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;Name&quot;,
+                    &quot;lua_type&quot;: &quot;string&quot;,
+                    &quot;desc&quot;: &quot;The name of the action creator.&quot;
+                }
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 22,
+                &quot;path&quot;: &quot;src/MakeActionCreator.lua&quot;
+            }
+        }
+    ],
+    &quot;name&quot;: &quot;Helium&quot;,
+    &quot;desc&quot;: &quot;Helium is a library based on Rocrastinate with improvements for Luau as well as added features.\n\n:::info Rocrastinate\nRocrastinate is a fantastic library that is unfortunatley not longer worked on. I&#x27;ve taken development of it into my own hands to keep it alive as it does a lot of things extremely well.\n:::&quot;,
+    &quot;source&quot;: {
+        &quot;line&quot;: 258,
+        &quot;path&quot;: &quot;src/init.lua&quot;
+    }
+}</pre></details></div><div class="col col--3"><div class="tableOfContents_35-E thin-scrollbar"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#types" class="table-of-contents__link">Types</a><ul><li><a href="#ActionBase" class="table-of-contents__link">ActionBase</a></li><li><a href="#ActionCreatorTable" class="table-of-contents__link">ActionCreatorTable</a></li><li><a href="#HeliumConfiguration" class="table-of-contents__link">HeliumConfiguration</a></li><li><a href="#RedrawBinding" class="table-of-contents__link">RedrawBinding</a></li><li><a href="#ReducerFunction" class="table-of-contents__link">ReducerFunction</a></li></ul></li><li><a href="#properties" class="table-of-contents__link">Properties</a><ul><li><a href="#Children" class="table-of-contents__link">Children</a></li><li><a href="#Component" class="table-of-contents__link">Component</a></li><li><a href="#RedrawBinding" class="table-of-contents__link">RedrawBinding</a></li><li><a href="#Store" class="table-of-contents__link">Store</a></li></ul></li><li><a href="#functions" class="table-of-contents__link">Functions</a><ul><li><a href="#CombineReducers" class="table-of-contents__link">.CombineReducers</a></li><li><a href="#CreateStore" class="table-of-contents__link">.CreateStore</a></li><li><a href="#InspectorMiddleware" class="table-of-contents__link">.InspectorMiddleware</a></li><li><a href="#LoggerMiddleware" class="table-of-contents__link">.LoggerMiddleware</a></li><li><a href="#Make" class="table-of-contents__link">.Make</a></li><li><a href="#MakeActionCreator" class="table-of-contents__link">.MakeActionCreator</a></li><li><a href="#SetConfig" class="table-of-contents__link">.SetConfig</a></li><li><a href="#SetConfiguration" class="table-of-contents__link">.SetConfiguration</a></li><li><a href="#SetGlobalConfig" class="table-of-contents__link">.SetGlobalConfig</a></li><li><a href="#SetGlobalConfiguration" class="table-of-contents__link">.SetGlobalConfiguration</a></li><li><a href="#SpunkMiddleware" class="table-of-contents__link">.SpunkMiddleware</a></li><li><a href="#ThunkMiddleware" class="table-of-contents__link">.ThunkMiddleware</a></li></ul></li></ul></div></div></div></div></main></div></div><footer class="footer footer--dark"><div class="container"><div class="footer__bottom text--center"><div class="footer__copyright">Copyright © 2021 howmanysmall. Built with Moonwave and Docusaurus.</div></div></div></footer></div>
+<script src="/Helium/assets/js/runtime~main.451f22ca.js"></script>
+<script src="/Helium/assets/js/main.136d6786.js"></script>
+</body>
+</html>

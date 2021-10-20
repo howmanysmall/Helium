@@ -1,0 +1,1543 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="generator" content="Docusaurus v2.0.0-beta.6">
+<title data-react-helmet="true">Component | Helium</title><meta data-react-helmet="true" property="og:title" content="Component | Helium"><meta data-react-helmet="true" name="twitter:card" content="summary_large_image"><meta data-react-helmet="true" name="description" content="Components are classes that can be extended and built upon. Like [Roact](https://github.com/Roblox/roact/ &quot;Roact by Roblox&quot;) components, they represent a reusable object that you can create using constructors.
+
+You can create and destroy Components using standard Luau class methods.
+
+```lua
+local AwesomeComponent = require(&quot;AwesomeComponent&quot;)
+local Object = AwesomeComponent.new()
+Object:Destroy()
+```
+
+To declare our first Component class, Helium provides the following API:
+
+```lua
+local Helium = require(ReplicatedStorage.Helium)
+local MyComponent = Helium.Component.Extend(&quot;MyComponent&quot;)
+```
+
+When a new Component object is created using `MyComponent.new()`, the `Constructor` function is called with the same arguments passed through `new`. Here is a simple printer component:
+
+```lua
+local Printer = Helium.Component.Extend(&quot;Printer&quot;)
+
+function Printer:Constructor(Message: string)
+	self.Message = Message
+end
+
+function Printer:Print()
+	print(self.Message)
+end
+
+local MyPrinter = Printer.new(&quot;Hello, World!&quot;)
+MyPrinter:Print() -- Hello, World!
+MyPrinter:Destroy() -- ( Currently has no effect, but is still a thing we can do )
+```
+
+While this has nothing to do with UI, it is a good example of the object-oriented structure we will be using for the rest of the tutorial.
+
+### UI components
+
+Helium gives total control over what a component does when it is constructed. You can create as many Gui objects as you like, and update them however you like.
+The information we actually display to the user can be controlled using the Component class&#x27; `:Redraw()` method.
+
+:::warning
+Never ever call `:Redraw()` directly. This method is automatically called next `RenderStepped`, `Heartbeat` or `Stepped` event depending on what was set as the `RedrawBinding`.
+:::
+
+To queue a redraw on the next frame, use `self.QueueRedraw()` instead. This is an anonymous, idempotent function that tells Helium to call `:Redraw()` automatically on the next `RedrawBinding` step.
+It should be noted that when a component is constructed, Helium automatically calls `self.QueueRedraw()` once.
+
+We can control whether `:Redraw()` is called on by using the static `RedrawBinding` property of components. This is an Enum which you can access by doing `Helium.RedrawBinding.`.
+
+Let&#x27;s say we wanted to create a `CoinsDisplay` component, which draws some representation of how many coins a player has.
+
+```lua
+local Helium = require(ReplicatedStorage.Helium)
+local CoinsDisplay = Helium.Component.Extend(&quot;CoinsDisplay&quot;)
+
+function CoinsDisplay:Constructor()
+	self.Coins = 0
+
+	self.Gui = Instance.new(&quot;ScreenGui&quot;)
+	self.CoinsLabel = Instance.new(&quot;TextLabel&quot;)
+	self.CoinsLabel.Size = UDim2.fromOffset(100, 100)
+	self.CoinsLabel.Parent = self.Gui
+
+	self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+end
+
+function CoinsDisplay:AddCoin()
+	self.Coins += 1
+	self.QueueRedraw()
+end
+
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw()
+	self.CoinsLabel.Text = self.Coins
+end
+
+-- Add 1 coin every second
+local MyCoinsDisplay = CoinsDisplay.new()
+while true do
+	task.wait(1)
+	MyCoinsDisplay:AddCoin()
+end
+```
+
+![ComponentExample](https://i.imgur.com/QqGKiJs.gif)
+
+As you can see this component functions as intended. However, there is one small problem: What would happen if we were to destroy the CoinDisplay component?
+
+```lua
+local MyCoinsDisplay = CoinsDisplay.new()
+MyCoinsDisplay:AddCoin()
+MyCoinsDisplay:Destroy()
+```
+
+![Bad](https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example2.png?raw=true)
+
+Now, wait a minute... why is the Gui still appearing? Furthermore, why are we seeing the text &quot;Label&quot; instead of the number 1 or 0?
+While it&#x27;s true that the state of `self.Coins` should have been set to 1 after calling `:AddCoin()`, the `MyCoinsDisplay` object was destroyed before the next `Heartbeat` frame started.
+
+Thus, even though `self.QueueRedraw()` was called, this line of code never ran, as Helium automatically unbinds queued redraws once a component is destroyed:
+
+```lua
+function CoinsDisplay:Redraw()
+	self.CoinsLabel.Text = self.Coins
+end
+```
+
+Since the Text property was never set, it was left with the default value of all TextLabel objects: &quot;Label&quot;.
+
+We also have one other problem: the `Gui` and `coinsLabel` objects are still parented to PlayerGui when `CoinsDisplay:Destroy()` is called. While we could define a destructor and remove them there:
+
+```lua
+function CoinsDisplay:Destroy() -- Note: Do not do this
+	self.Gui:Destroy()
+end
+```
+
+:::warning
+**Never** overwrite the `:Destroy` method, doing so all but guarantees you&#x27;ll have a major problem down the line.
+:::
+
+The problem is that keeping track of every every object that is created can become unmanageable, especially after creating a large number of components
+
+```lua
+function MyApp:Constructor()
+	self.MyComponentA = ComponentA.new(...)
+	self.MyComponentB = ComponentB.new(...)
+	self.MyComponentC = ComponentC.new(...)
+	self.MyFrame = Instance.new(&quot;Frame&quot;)
+end
+
+function MyApp:Destroy() -- Note: Do not do this
+	self.MyComponentA:Destroy()
+	self.MyComponentB:Destroy()
+	self.MyComponentC:Destroy()
+	self.MyFrame:Destroy()
+end
+```
+
+Seems like a lot of work, right? Now, if you want to add or remove elements from your UI Component, you have to also add or remove it from the Destructor. If you forget to do this, bad things can happen.
+Furthermore, what if components/Gui Objects are created during `MyApp:Redraw()` rather than `MyComponent:Constructor()`? Now you have to use an if statement to conditionally check if the object even
+exists, and if it does, destroy it in the destructor.
+
+Helium utilizes the Janitor object for Component destructors. You can read more about it on the [Janitor documentation site](https://howmanysmall.github.io/Janitor/).
+
+Going back to the CoinsDisplay example, our `Janitor` object can be utilized in the constructor as follows:
+
+```lua
+function CoinsDisplay:Constructor()
+	self.Coins = 0
+
+	self.Gui = self.Janitor:Add(Instance.new(&quot;ScreenGui&quot;), &quot;Destroy&quot;)
+	self.CoinsLabel = self.Janitor:Add(Instance.new(&quot;TextLabel&quot;), &quot;Destroy&quot;)
+	self.CoinsLabel.Size = UDim2.fromOffset(100, 100)
+	self.CoinsLabel.Parent = self.Gui
+
+	self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+end
+```
+
+`:Add()` is a special function that takes in an object that can be called. If the Janitor is given an Instance, then that instance will automatically be destroyed when the Component is destroyed.
+The first argument is meant for the object you are passing. The second argument is the either `true` for functions or a string for the name of the function to call. You can see the API for [Janitor:Add](https://howmanysmall.github.io/Janitor/api/Janitor#Add) for more information.
+When the Component is destroyed, the `:Destroy()` method of the Janitor will be called which in turn cleans up everything in the Janitor.
+
+----
+
+### Improving our Component class
+
+Now, I will attempt to explain some improvements that can be made to our `CoinDisplay` code.
+First of all, we don&#x27;t actually need to create our gui objects until `:Redraw()` is called. For the sake of separation of concerns, it would be better to move that into the `:Redraw()` function.
+
+```lua
+function CoinsDisplay:Constructor()
+	self.Coins = 0
+
+	-- Note: self.QueueRedraw() is automatically called after the CoinsDisplay object is created
+end
+
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw()
+	-- This will run once on the first frame that our CoinsDisplay element is rendered (if it is rendered)
+	if not self.Gui then
+		self.Gui = self.Janitor:Add(Instance.new(&quot;ScreenGui&quot;), &quot;Destroy&quot;)
+		self.CoinsLabel = self.Janitor:Add(Instance.new(&quot;TextLabel&quot;), &quot;Destroy&quot;)
+		self.CoinsLabel.Size = UDim2.fromOffset(100, 100)
+		self.CoinsLabel.Parent = self.Gui
+
+		self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+	end
+
+	self.CoinsLabel.Text = self.Coins
+end
+```
+
+See how much cleaner the constructor is? Now, when we want to locate the portion of code that draws what is displayed to the user, we need only look at the `:Redraw()` function.
+Secondly, we do not need to keep track of our CoinsLabel frame, as it is already parented to our Gui (we also do not need to give it to the Component&#x27;s Janitor for that matter).
+
+```lua
+function CoinsDisplay:Redraw()
+	if not self.Gui then
+		self.Gui = self.Janitor:Add(Instance.new(&quot;ScreenGui&quot;), &quot;Destroy&quot;) -- Only the gui needs to be given to the janitor.
+
+		local CoinsLabel = Instance.new(&quot;TextLabel&quot;)
+		CoinsLabel.Name = &quot;CoinsLabel&quot;
+		CoinsLabel.Size = UDim2.fromOffset(100, 100)
+		CoinsLabel.Parent = self.Gui
+
+		self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+	end
+
+	self.Gui.CoinsLabel.Text = self.Coins -- Here we index gui instead of coinsLabel, I don&#x27;t personally recommend this because it&#x27;s extra indexing for no reason.
+end
+```
+
+---
+
+We deferred creation of our `self.Gui` object until `:Redraw()` is called by Helium. However, there is one small problem with our code:
+
+```lua
+self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+```
+
+This `:WaitForChild()` is a yielding function. Yielding on a Redraw means our code could be subject to race conditions. In general, you should avoid yielding within `:Redraw()` wherever possible.
+Furthermore, it is not ideal to hardcode the parent in which our component&#x27;s UI is placed. What if, for example, we wanted to nest a `CoinsDisplay` object inside of another menu? Let&#x27;s define the
+parent in which we want to place the component as a parameter of the `CoinsDisplay` constructor:
+
+```lua
+function CoinsDisplay:Constructor(Parent: Instance)
+	self.Coins = 0
+	self.Parent = Parent
+end
+
+function CoinsDisplay:Redraw()
+	if not self.Gui then
+		...
+		self.Gui.Parent = self.Parent
+	end
+
+	self.Gui.CoinsLabel.Text = self.Coins
+end
+```
+
+Now, when we create our component, we should provide it with a parent argument:
+
+```lua
+local PlayerGui = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+
+-- Add 1 coin every second
+local MyCoinsDisplay = CoinsDisplay.new(PlayerGui)
+while true do
+	task.wait(1)
+	MyCoinsDisplay:AddCoin()
+end
+```
+
+There is one other thing that will make the code simpler: UI Templates. Because Helium gives us full control over how our GUI elements are created, we can place a template inside of our component&#x27;s module:
+
+![example](https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example3.png?raw=true)
+
+## Final Code
+
+Here is the final code for the CoinsDisplay module:
+
+```lua
+local Helium = require(ReplicatedStorage.Helium)
+local CoinsDisplay = Helium.Component.Extend(&quot;CoinsDisplay&quot;)
+
+function CoinsDisplay:Constructor(Parent: Instance)
+	self.Coins = 0
+	self.Parent = Parent
+end
+
+function CoinsDisplay:AddCoin()
+	self.Coins += 1
+	self.QueueRedraw()
+end
+
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw()
+	if not self.Gui then
+		self.Gui = self.Janitor:Add(script.CoinsDisplayTemplate:Clone(), &quot;Destroy&quot;)
+		self.Gui.Parent = self.Parent
+	end
+
+	self.Gui.CoinsLabel.Text = &quot;Coins: &quot; .. self.Coins
+end
+
+return CoinsDisplay
+```
+
+And here is a LocalScript that utilizes the module:
+
+```lua
+local CoinsDisplay = require(ReplicatedStorage.CoinsDisplay)
+local PlayerGui = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+
+-- Add 1 coin every second
+local MyCoinsDisplay = CoinsDisplay.new(PlayerGui)
+while true do
+	task.wait(1)
+	MyCoinsDisplay:AddCoin()
+end
+```
+
+![example](https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example4.gif?raw=true)
+
+------
+
+# 1.2 Component State Reduction
+
+## The Observer Pattern
+
+In order to understand how we can re-draw our components based on store updates, we must first look at the way in which the Helium Store propogates updates
+
+As we saw in the last tutorial, reducers are given a special function `SetState()`, which mutates a value in the store.
+
+Technically, for the root reducer, the actual function `GetState()` passed to the reducer is `Store:GetState()`, and the actual function `SetState()` is `Store:SetState()`.
+
+What `Store:GetState(...KeyPath)` does is parse a provided series of string keys until a value is found in the store. If a key does not exist at a given path, the store will return `nil`. For the sake of mutation safety, the store will NOT directly return tables in the store when calling `Store:GetState(...)`; instead, tables will be deeply cloned, then returned.
+
+If you want to keep a table in the store that is directly mutable when it is retrieved using `get()`, you can create a pointer to it by wrapping it in a function:
+
+```lua
+local function CreateFenv(Value: any)
+	return function()
+		return Value
+	end
+end
+
+local Table = {}
+Store:SetState(&quot;Table&quot;, CreateFenv(Table))
+
+---...
+
+local PointsToTable = Store:GetState(&quot;Table&quot;)
+print(Table == PointsToTable()) -- true
+```
+
+```cpp
+RbxInstance CreateFenv(void) : (RbxInstance Value)
+{
+	return Value;
+}
+
+GenericDictionary Table = table();
+Store::SetState(L&quot;Table&quot;, CreateFenv:(Table));
+
+// ...
+
+void PointsToTable = Store::GetState @ Table;
+print(Table == PointsToTable()); // true
+```
+
+Whereas `GetState()` does more than directly returning the value in the store, the function `SetState()` also does more than just mutating the value in the store. When `store:SetState()` is called, it keeps track of each key that was changed, and notifies any observers of the change.
+
+We can observe store changes using the `Store:Connect(&quot;Path.To.Key&quot;, Function)` function. Unlike `GetState` and `SetState`, the key path is denoted using the dot notation. Subscribing to the empty string `&quot;&quot;` will observe all store changes.
+
+Example:
+
+```lua
+local Store = Helium.Store.new(function()
+end, {PlayerStats = {Coins = 0}})
+
+local Disconnect = Store:Connect(&quot;PlayerStats.Coins&quot;, function()
+	local Coins = Store:GetState(&quot;PlayerStats.Coins&quot;)
+	print(&quot;You have&quot;, coins, &quot;Coins&quot;)
+end)
+
+Store:SetState(&quot;PlayerStats&quot;, &quot;Coins&quot;, 10) -- You have 10 Coins
+Disconnect()
+Store:SetState(&quot;PlayerStats&quot;, &quot;Coins&quot;, 20) -- No output.
+```
+
+## Observing with Components
+
+Our Components can listen to changes in a store and automatically queue updates when a value in the store has changed. In order to do this, some preconditions need to be set:
+1. The component needs to know what store to observe changes from
+2. The component needs to know what key paths to subscribe to, and how to display them.
+
+The first precondition is simple: We can simply pass the store in as an argument in the Component&#x27;s constructor. **In fact, Helium Components must receive a store as the first argument in their constructor in order to observe changes from that store**.
+
+While passing the same first argument through every single component down the tree of components may seem verbose, this actually makes it easy to differentiate &quot;Container Components&quot; (which are generally coupled with a particular segment of the application) from &quot;Presentational Components&quot; (which can generally be re-used throughout the application). More on that in a later tutorial.
+
+```lua
+function CoinsDisplay:Constructor(Store, Parent: Instance)
+	self.Parent = Parent
+	self.Store = Store
+end
+```
+
+In this instance, we set `self.Store = Store` so that we can keep track of the store in case we need to give it to a nested component in our redraw function (similar to how we keep track of `Parent` in order to know where we should inevitably place the copy of our component&#x27;s template).
+Now what we want is to subscribe to a value in the store (say, &#x27;Coins&#x27;), and automatically call `self.QueueRedraw()` whenever this state changes. Helium provides an easy way of doing this for Components using a property called `Reduction`:
+
+```lua
+CoinsDisplay.Reduction = {Coins = &quot;Store.Path.To.Coins&quot;}
+```
+
+This will automatically subscribe new CoinsDisplay components from the keypath on the right-hand side (`&quot;Store.Path.To.Coins&quot;`), and map it to the value on the left-hand side (`&quot;Coins&quot;`). The reduced state will then be passed in as a table, as the first argument to `CoinsDisplay:Redraw()`
+
+```lua
+CoinsDisplay.Reduction = {Coins = &quot;Store.Path.To.Coins&quot;}
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw(ReducedState)
+	local Gui = self.Gui
+	if not Gui then
+		Gui = self.Janitor:Add(script.CoinsDisplayTemplate:Clone(), &quot;Destroy&quot;)
+		Gui.Parent = self.Parent
+		self.Gui = Gui
+	end
+
+	-- Now we can display from ReducedState.Coins instead of self.Coins.
+	-- In fact, we can get rid of self.Coins now that all our data is coming from the store.
+	Gui.CoinsLabel.Text = &quot;Coins: &quot; .. ReducedState.Coins
+end
+```
+
+We can now get rid of the `self.coins` property initialized in the constructor. In fact, we can also get rid of the `CoinsDisplay:AddCoin()` method we defined earlier, and replace it with actions such as `ADD_COINS` that we created in the last tutorial. Putting it all together:
+
+## Final Code
+
+### ReplicatedStorage.CoinsDisplay ModuleScript
+```lua
+local ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;)
+local Helium = require(ReplicatedStorage.Helium)
+local CoinsDisplay = Helium.Component.Extend(&quot;CoinsDisplay&quot;)
+
+function CoinsDisplay:Constructor(Store, Parent: Instance)
+	self.Store = Store
+	self.Parent = Parent
+end
+
+type ReducedState = {Coins: number}
+
+CoinsDisplay.Reduction = {Coins = &quot;&quot;} -- In this example, our store state is equivalent to coins
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw(ReducedState: ReducedState)
+	local Gui = self.Gui
+	if not Gui then
+		Gui = self.Janitor:Add(script.CoinsDisplayTemplate:Clone(), &quot;Destroy&quot;)
+		Gui.Parent = self.Parent
+		self.Gui = Gui
+	end
+
+	Gui.CoinsLabel.Text = &quot;Coins: &quot; .. ReducedState.Coins
+end
+
+return CoinsDisplay
+```
+
+### A LocalScript:
+```lua
+local Players = game:GetService(&quot;Players&quot;)
+local ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;)
+
+local CoinsDisplay = require(ReplicatedStorage.CoinsDisplay)
+local Helium = require(ReplicatedStorage.Helium)
+
+local PlayerGui = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+
+local AddCoins = Helium.MakeActionCreator(&quot;AddCoins&quot;, function(Amount: number)
+	return {Amount = Amount}
+end)
+
+type BaseAction = {Type: string}
+
+local function Reducer(Action: BaseAction, GetState, SetState)
+	if Action.Type == AddCoins.ActionName then
+		SetState(GetState() + Action.Amount)
+	end
+end
+
+local InitialState = 0
+
+-- Create the store
+local CoinsStore = Helium.Store.new(Reducer, InitialState)
+
+-- Mount the root component; notice how CoinsStore is given as the first argument
+CoinsDisplay.new(CoinsStore, PlayerGui)
+
+-- Add 1 coin every second (hopefully)
+while true do
+	local DeltaTime = task.wait(1)
+	CoinsStore:Fire(AddCoins(math.floor(DeltaTime)))
+end
+```
+
+This should function exactly the same as before, but this time our coins are pulling directly from the store, and listening to action dispatches. We also don&#x27;t need to store our `CoinsDisplay` instance as a variable in this case, nor do we need to directly tell the CoinsDisplay component to increment the state of &#x27;coins&#x27;.
+
+---
+
+:::info
+All of this documentation is from the original [Rocrastinate docs](https://github.com/headjoe3/Rocrastinate/tree/master/docs) and was written by DataBrain, so 100% of the credit should go to him.
+All I did was modify it to fit Helium&#x27;s API.
+:::"><meta data-react-helmet="true" property="og:description" content="Components are classes that can be extended and built upon. Like [Roact](https://github.com/Roblox/roact/ &quot;Roact by Roblox&quot;) components, they represent a reusable object that you can create using constructors.
+
+You can create and destroy Components using standard Luau class methods.
+
+```lua
+local AwesomeComponent = require(&quot;AwesomeComponent&quot;)
+local Object = AwesomeComponent.new()
+Object:Destroy()
+```
+
+To declare our first Component class, Helium provides the following API:
+
+```lua
+local Helium = require(ReplicatedStorage.Helium)
+local MyComponent = Helium.Component.Extend(&quot;MyComponent&quot;)
+```
+
+When a new Component object is created using `MyComponent.new()`, the `Constructor` function is called with the same arguments passed through `new`. Here is a simple printer component:
+
+```lua
+local Printer = Helium.Component.Extend(&quot;Printer&quot;)
+
+function Printer:Constructor(Message: string)
+	self.Message = Message
+end
+
+function Printer:Print()
+	print(self.Message)
+end
+
+local MyPrinter = Printer.new(&quot;Hello, World!&quot;)
+MyPrinter:Print() -- Hello, World!
+MyPrinter:Destroy() -- ( Currently has no effect, but is still a thing we can do )
+```
+
+While this has nothing to do with UI, it is a good example of the object-oriented structure we will be using for the rest of the tutorial.
+
+### UI components
+
+Helium gives total control over what a component does when it is constructed. You can create as many Gui objects as you like, and update them however you like.
+The information we actually display to the user can be controlled using the Component class&#x27; `:Redraw()` method.
+
+:::warning
+Never ever call `:Redraw()` directly. This method is automatically called next `RenderStepped`, `Heartbeat` or `Stepped` event depending on what was set as the `RedrawBinding`.
+:::
+
+To queue a redraw on the next frame, use `self.QueueRedraw()` instead. This is an anonymous, idempotent function that tells Helium to call `:Redraw()` automatically on the next `RedrawBinding` step.
+It should be noted that when a component is constructed, Helium automatically calls `self.QueueRedraw()` once.
+
+We can control whether `:Redraw()` is called on by using the static `RedrawBinding` property of components. This is an Enum which you can access by doing `Helium.RedrawBinding.`.
+
+Let&#x27;s say we wanted to create a `CoinsDisplay` component, which draws some representation of how many coins a player has.
+
+```lua
+local Helium = require(ReplicatedStorage.Helium)
+local CoinsDisplay = Helium.Component.Extend(&quot;CoinsDisplay&quot;)
+
+function CoinsDisplay:Constructor()
+	self.Coins = 0
+
+	self.Gui = Instance.new(&quot;ScreenGui&quot;)
+	self.CoinsLabel = Instance.new(&quot;TextLabel&quot;)
+	self.CoinsLabel.Size = UDim2.fromOffset(100, 100)
+	self.CoinsLabel.Parent = self.Gui
+
+	self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+end
+
+function CoinsDisplay:AddCoin()
+	self.Coins += 1
+	self.QueueRedraw()
+end
+
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw()
+	self.CoinsLabel.Text = self.Coins
+end
+
+-- Add 1 coin every second
+local MyCoinsDisplay = CoinsDisplay.new()
+while true do
+	task.wait(1)
+	MyCoinsDisplay:AddCoin()
+end
+```
+
+![ComponentExample](https://i.imgur.com/QqGKiJs.gif)
+
+As you can see this component functions as intended. However, there is one small problem: What would happen if we were to destroy the CoinDisplay component?
+
+```lua
+local MyCoinsDisplay = CoinsDisplay.new()
+MyCoinsDisplay:AddCoin()
+MyCoinsDisplay:Destroy()
+```
+
+![Bad](https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example2.png?raw=true)
+
+Now, wait a minute... why is the Gui still appearing? Furthermore, why are we seeing the text &quot;Label&quot; instead of the number 1 or 0?
+While it&#x27;s true that the state of `self.Coins` should have been set to 1 after calling `:AddCoin()`, the `MyCoinsDisplay` object was destroyed before the next `Heartbeat` frame started.
+
+Thus, even though `self.QueueRedraw()` was called, this line of code never ran, as Helium automatically unbinds queued redraws once a component is destroyed:
+
+```lua
+function CoinsDisplay:Redraw()
+	self.CoinsLabel.Text = self.Coins
+end
+```
+
+Since the Text property was never set, it was left with the default value of all TextLabel objects: &quot;Label&quot;.
+
+We also have one other problem: the `Gui` and `coinsLabel` objects are still parented to PlayerGui when `CoinsDisplay:Destroy()` is called. While we could define a destructor and remove them there:
+
+```lua
+function CoinsDisplay:Destroy() -- Note: Do not do this
+	self.Gui:Destroy()
+end
+```
+
+:::warning
+**Never** overwrite the `:Destroy` method, doing so all but guarantees you&#x27;ll have a major problem down the line.
+:::
+
+The problem is that keeping track of every every object that is created can become unmanageable, especially after creating a large number of components
+
+```lua
+function MyApp:Constructor()
+	self.MyComponentA = ComponentA.new(...)
+	self.MyComponentB = ComponentB.new(...)
+	self.MyComponentC = ComponentC.new(...)
+	self.MyFrame = Instance.new(&quot;Frame&quot;)
+end
+
+function MyApp:Destroy() -- Note: Do not do this
+	self.MyComponentA:Destroy()
+	self.MyComponentB:Destroy()
+	self.MyComponentC:Destroy()
+	self.MyFrame:Destroy()
+end
+```
+
+Seems like a lot of work, right? Now, if you want to add or remove elements from your UI Component, you have to also add or remove it from the Destructor. If you forget to do this, bad things can happen.
+Furthermore, what if components/Gui Objects are created during `MyApp:Redraw()` rather than `MyComponent:Constructor()`? Now you have to use an if statement to conditionally check if the object even
+exists, and if it does, destroy it in the destructor.
+
+Helium utilizes the Janitor object for Component destructors. You can read more about it on the [Janitor documentation site](https://howmanysmall.github.io/Janitor/).
+
+Going back to the CoinsDisplay example, our `Janitor` object can be utilized in the constructor as follows:
+
+```lua
+function CoinsDisplay:Constructor()
+	self.Coins = 0
+
+	self.Gui = self.Janitor:Add(Instance.new(&quot;ScreenGui&quot;), &quot;Destroy&quot;)
+	self.CoinsLabel = self.Janitor:Add(Instance.new(&quot;TextLabel&quot;), &quot;Destroy&quot;)
+	self.CoinsLabel.Size = UDim2.fromOffset(100, 100)
+	self.CoinsLabel.Parent = self.Gui
+
+	self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+end
+```
+
+`:Add()` is a special function that takes in an object that can be called. If the Janitor is given an Instance, then that instance will automatically be destroyed when the Component is destroyed.
+The first argument is meant for the object you are passing. The second argument is the either `true` for functions or a string for the name of the function to call. You can see the API for [Janitor:Add](https://howmanysmall.github.io/Janitor/api/Janitor#Add) for more information.
+When the Component is destroyed, the `:Destroy()` method of the Janitor will be called which in turn cleans up everything in the Janitor.
+
+----
+
+### Improving our Component class
+
+Now, I will attempt to explain some improvements that can be made to our `CoinDisplay` code.
+First of all, we don&#x27;t actually need to create our gui objects until `:Redraw()` is called. For the sake of separation of concerns, it would be better to move that into the `:Redraw()` function.
+
+```lua
+function CoinsDisplay:Constructor()
+	self.Coins = 0
+
+	-- Note: self.QueueRedraw() is automatically called after the CoinsDisplay object is created
+end
+
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw()
+	-- This will run once on the first frame that our CoinsDisplay element is rendered (if it is rendered)
+	if not self.Gui then
+		self.Gui = self.Janitor:Add(Instance.new(&quot;ScreenGui&quot;), &quot;Destroy&quot;)
+		self.CoinsLabel = self.Janitor:Add(Instance.new(&quot;TextLabel&quot;), &quot;Destroy&quot;)
+		self.CoinsLabel.Size = UDim2.fromOffset(100, 100)
+		self.CoinsLabel.Parent = self.Gui
+
+		self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+	end
+
+	self.CoinsLabel.Text = self.Coins
+end
+```
+
+See how much cleaner the constructor is? Now, when we want to locate the portion of code that draws what is displayed to the user, we need only look at the `:Redraw()` function.
+Secondly, we do not need to keep track of our CoinsLabel frame, as it is already parented to our Gui (we also do not need to give it to the Component&#x27;s Janitor for that matter).
+
+```lua
+function CoinsDisplay:Redraw()
+	if not self.Gui then
+		self.Gui = self.Janitor:Add(Instance.new(&quot;ScreenGui&quot;), &quot;Destroy&quot;) -- Only the gui needs to be given to the janitor.
+
+		local CoinsLabel = Instance.new(&quot;TextLabel&quot;)
+		CoinsLabel.Name = &quot;CoinsLabel&quot;
+		CoinsLabel.Size = UDim2.fromOffset(100, 100)
+		CoinsLabel.Parent = self.Gui
+
+		self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+	end
+
+	self.Gui.CoinsLabel.Text = self.Coins -- Here we index gui instead of coinsLabel, I don&#x27;t personally recommend this because it&#x27;s extra indexing for no reason.
+end
+```
+
+---
+
+We deferred creation of our `self.Gui` object until `:Redraw()` is called by Helium. However, there is one small problem with our code:
+
+```lua
+self.Gui.Parent = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+```
+
+This `:WaitForChild()` is a yielding function. Yielding on a Redraw means our code could be subject to race conditions. In general, you should avoid yielding within `:Redraw()` wherever possible.
+Furthermore, it is not ideal to hardcode the parent in which our component&#x27;s UI is placed. What if, for example, we wanted to nest a `CoinsDisplay` object inside of another menu? Let&#x27;s define the
+parent in which we want to place the component as a parameter of the `CoinsDisplay` constructor:
+
+```lua
+function CoinsDisplay:Constructor(Parent: Instance)
+	self.Coins = 0
+	self.Parent = Parent
+end
+
+function CoinsDisplay:Redraw()
+	if not self.Gui then
+		...
+		self.Gui.Parent = self.Parent
+	end
+
+	self.Gui.CoinsLabel.Text = self.Coins
+end
+```
+
+Now, when we create our component, we should provide it with a parent argument:
+
+```lua
+local PlayerGui = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+
+-- Add 1 coin every second
+local MyCoinsDisplay = CoinsDisplay.new(PlayerGui)
+while true do
+	task.wait(1)
+	MyCoinsDisplay:AddCoin()
+end
+```
+
+There is one other thing that will make the code simpler: UI Templates. Because Helium gives us full control over how our GUI elements are created, we can place a template inside of our component&#x27;s module:
+
+![example](https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example3.png?raw=true)
+
+## Final Code
+
+Here is the final code for the CoinsDisplay module:
+
+```lua
+local Helium = require(ReplicatedStorage.Helium)
+local CoinsDisplay = Helium.Component.Extend(&quot;CoinsDisplay&quot;)
+
+function CoinsDisplay:Constructor(Parent: Instance)
+	self.Coins = 0
+	self.Parent = Parent
+end
+
+function CoinsDisplay:AddCoin()
+	self.Coins += 1
+	self.QueueRedraw()
+end
+
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw()
+	if not self.Gui then
+		self.Gui = self.Janitor:Add(script.CoinsDisplayTemplate:Clone(), &quot;Destroy&quot;)
+		self.Gui.Parent = self.Parent
+	end
+
+	self.Gui.CoinsLabel.Text = &quot;Coins: &quot; .. self.Coins
+end
+
+return CoinsDisplay
+```
+
+And here is a LocalScript that utilizes the module:
+
+```lua
+local CoinsDisplay = require(ReplicatedStorage.CoinsDisplay)
+local PlayerGui = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+
+-- Add 1 coin every second
+local MyCoinsDisplay = CoinsDisplay.new(PlayerGui)
+while true do
+	task.wait(1)
+	MyCoinsDisplay:AddCoin()
+end
+```
+
+![example](https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example4.gif?raw=true)
+
+------
+
+# 1.2 Component State Reduction
+
+## The Observer Pattern
+
+In order to understand how we can re-draw our components based on store updates, we must first look at the way in which the Helium Store propogates updates
+
+As we saw in the last tutorial, reducers are given a special function `SetState()`, which mutates a value in the store.
+
+Technically, for the root reducer, the actual function `GetState()` passed to the reducer is `Store:GetState()`, and the actual function `SetState()` is `Store:SetState()`.
+
+What `Store:GetState(...KeyPath)` does is parse a provided series of string keys until a value is found in the store. If a key does not exist at a given path, the store will return `nil`. For the sake of mutation safety, the store will NOT directly return tables in the store when calling `Store:GetState(...)`; instead, tables will be deeply cloned, then returned.
+
+If you want to keep a table in the store that is directly mutable when it is retrieved using `get()`, you can create a pointer to it by wrapping it in a function:
+
+```lua
+local function CreateFenv(Value: any)
+	return function()
+		return Value
+	end
+end
+
+local Table = {}
+Store:SetState(&quot;Table&quot;, CreateFenv(Table))
+
+---...
+
+local PointsToTable = Store:GetState(&quot;Table&quot;)
+print(Table == PointsToTable()) -- true
+```
+
+```cpp
+RbxInstance CreateFenv(void) : (RbxInstance Value)
+{
+	return Value;
+}
+
+GenericDictionary Table = table();
+Store::SetState(L&quot;Table&quot;, CreateFenv:(Table));
+
+// ...
+
+void PointsToTable = Store::GetState @ Table;
+print(Table == PointsToTable()); // true
+```
+
+Whereas `GetState()` does more than directly returning the value in the store, the function `SetState()` also does more than just mutating the value in the store. When `store:SetState()` is called, it keeps track of each key that was changed, and notifies any observers of the change.
+
+We can observe store changes using the `Store:Connect(&quot;Path.To.Key&quot;, Function)` function. Unlike `GetState` and `SetState`, the key path is denoted using the dot notation. Subscribing to the empty string `&quot;&quot;` will observe all store changes.
+
+Example:
+
+```lua
+local Store = Helium.Store.new(function()
+end, {PlayerStats = {Coins = 0}})
+
+local Disconnect = Store:Connect(&quot;PlayerStats.Coins&quot;, function()
+	local Coins = Store:GetState(&quot;PlayerStats.Coins&quot;)
+	print(&quot;You have&quot;, coins, &quot;Coins&quot;)
+end)
+
+Store:SetState(&quot;PlayerStats&quot;, &quot;Coins&quot;, 10) -- You have 10 Coins
+Disconnect()
+Store:SetState(&quot;PlayerStats&quot;, &quot;Coins&quot;, 20) -- No output.
+```
+
+## Observing with Components
+
+Our Components can listen to changes in a store and automatically queue updates when a value in the store has changed. In order to do this, some preconditions need to be set:
+1. The component needs to know what store to observe changes from
+2. The component needs to know what key paths to subscribe to, and how to display them.
+
+The first precondition is simple: We can simply pass the store in as an argument in the Component&#x27;s constructor. **In fact, Helium Components must receive a store as the first argument in their constructor in order to observe changes from that store**.
+
+While passing the same first argument through every single component down the tree of components may seem verbose, this actually makes it easy to differentiate &quot;Container Components&quot; (which are generally coupled with a particular segment of the application) from &quot;Presentational Components&quot; (which can generally be re-used throughout the application). More on that in a later tutorial.
+
+```lua
+function CoinsDisplay:Constructor(Store, Parent: Instance)
+	self.Parent = Parent
+	self.Store = Store
+end
+```
+
+In this instance, we set `self.Store = Store` so that we can keep track of the store in case we need to give it to a nested component in our redraw function (similar to how we keep track of `Parent` in order to know where we should inevitably place the copy of our component&#x27;s template).
+Now what we want is to subscribe to a value in the store (say, &#x27;Coins&#x27;), and automatically call `self.QueueRedraw()` whenever this state changes. Helium provides an easy way of doing this for Components using a property called `Reduction`:
+
+```lua
+CoinsDisplay.Reduction = {Coins = &quot;Store.Path.To.Coins&quot;}
+```
+
+This will automatically subscribe new CoinsDisplay components from the keypath on the right-hand side (`&quot;Store.Path.To.Coins&quot;`), and map it to the value on the left-hand side (`&quot;Coins&quot;`). The reduced state will then be passed in as a table, as the first argument to `CoinsDisplay:Redraw()`
+
+```lua
+CoinsDisplay.Reduction = {Coins = &quot;Store.Path.To.Coins&quot;}
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw(ReducedState)
+	local Gui = self.Gui
+	if not Gui then
+		Gui = self.Janitor:Add(script.CoinsDisplayTemplate:Clone(), &quot;Destroy&quot;)
+		Gui.Parent = self.Parent
+		self.Gui = Gui
+	end
+
+	-- Now we can display from ReducedState.Coins instead of self.Coins.
+	-- In fact, we can get rid of self.Coins now that all our data is coming from the store.
+	Gui.CoinsLabel.Text = &quot;Coins: &quot; .. ReducedState.Coins
+end
+```
+
+We can now get rid of the `self.coins` property initialized in the constructor. In fact, we can also get rid of the `CoinsDisplay:AddCoin()` method we defined earlier, and replace it with actions such as `ADD_COINS` that we created in the last tutorial. Putting it all together:
+
+## Final Code
+
+### ReplicatedStorage.CoinsDisplay ModuleScript
+```lua
+local ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;)
+local Helium = require(ReplicatedStorage.Helium)
+local CoinsDisplay = Helium.Component.Extend(&quot;CoinsDisplay&quot;)
+
+function CoinsDisplay:Constructor(Store, Parent: Instance)
+	self.Store = Store
+	self.Parent = Parent
+end
+
+type ReducedState = {Coins: number}
+
+CoinsDisplay.Reduction = {Coins = &quot;&quot;} -- In this example, our store state is equivalent to coins
+CoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat
+function CoinsDisplay:Redraw(ReducedState: ReducedState)
+	local Gui = self.Gui
+	if not Gui then
+		Gui = self.Janitor:Add(script.CoinsDisplayTemplate:Clone(), &quot;Destroy&quot;)
+		Gui.Parent = self.Parent
+		self.Gui = Gui
+	end
+
+	Gui.CoinsLabel.Text = &quot;Coins: &quot; .. ReducedState.Coins
+end
+
+return CoinsDisplay
+```
+
+### A LocalScript:
+```lua
+local Players = game:GetService(&quot;Players&quot;)
+local ReplicatedStorage = game:GetService(&quot;ReplicatedStorage&quot;)
+
+local CoinsDisplay = require(ReplicatedStorage.CoinsDisplay)
+local Helium = require(ReplicatedStorage.Helium)
+
+local PlayerGui = Players.LocalPlayer:WaitForChild(&quot;PlayerGui&quot;)
+
+local AddCoins = Helium.MakeActionCreator(&quot;AddCoins&quot;, function(Amount: number)
+	return {Amount = Amount}
+end)
+
+type BaseAction = {Type: string}
+
+local function Reducer(Action: BaseAction, GetState, SetState)
+	if Action.Type == AddCoins.ActionName then
+		SetState(GetState() + Action.Amount)
+	end
+end
+
+local InitialState = 0
+
+-- Create the store
+local CoinsStore = Helium.Store.new(Reducer, InitialState)
+
+-- Mount the root component; notice how CoinsStore is given as the first argument
+CoinsDisplay.new(CoinsStore, PlayerGui)
+
+-- Add 1 coin every second (hopefully)
+while true do
+	local DeltaTime = task.wait(1)
+	CoinsStore:Fire(AddCoins(math.floor(DeltaTime)))
+end
+```
+
+This should function exactly the same as before, but this time our coins are pulling directly from the store, and listening to action dispatches. We also don&#x27;t need to store our `CoinsDisplay` instance as a variable in this case, nor do we need to directly tell the CoinsDisplay component to increment the state of &#x27;coins&#x27;.
+
+---
+
+:::info
+All of this documentation is from the original [Rocrastinate docs](https://github.com/headjoe3/Rocrastinate/tree/master/docs) and was written by DataBrain, so 100% of the credit should go to him.
+All I did was modify it to fit Helium&#x27;s API.
+:::"><meta data-react-helmet="true" property="og:url" content="https://howmanysmall.github.io/Helium/api/Component"><meta data-react-helmet="true" name="docusaurus_locale" content="en"><meta data-react-helmet="true" name="docusaurus_tag" content="default"><link data-react-helmet="true" rel="canonical" href="https://howmanysmall.github.io/Helium/api/Component"><link data-react-helmet="true" rel="alternate" href="https://howmanysmall.github.io/Helium/api/Component" hreflang="en"><link data-react-helmet="true" rel="alternate" href="https://howmanysmall.github.io/Helium/api/Component" hreflang="x-default"><link rel="stylesheet" href="/Helium/assets/css/styles.3c0ff9e9.css">
+<link rel="preload" href="/Helium/assets/js/runtime~main.451f22ca.js" as="script">
+<link rel="preload" href="/Helium/assets/js/main.136d6786.js" as="script">
+</head>
+<body>
+<script>!function(){function t(t){document.documentElement.setAttribute("data-theme",t)}var e=function(){var t=null;try{t=localStorage.getItem("theme")}catch(t){}return t}();t(null!==e?e:"light")}()</script><div id="__docusaurus">
+<div><a href="#" class="skipToContent_1oUP">Skip to main content</a></div><nav class="navbar navbar--fixed-top"><div class="navbar__inner"><div class="navbar__items"><button aria-label="Navigation bar toggle" class="navbar__toggle clean-btn" type="button" tabindex="0"><svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path stroke="currentColor" stroke-linecap="round" stroke-miterlimit="10" stroke-width="2" d="M4 7h22M4 15h22M4 23h22"></path></svg></button><a class="navbar__brand" href="/Helium/"><b class="navbar__title">Helium</b></a><a class="navbar__item navbar__link" href="/Helium/docs/intro">Docs</a><a aria-current="page" class="navbar__item navbar__link navbar__link--active" href="/Helium/api/">API</a></div><div class="navbar__items navbar__items--right"><a href="https://discord.gg/mhtGUS8" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link"><span>Discord<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_3J9K"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></span></a><a href="https://github.com/howmanysmall/Helium" target="_blank" rel="noopener noreferrer" class="navbar__item navbar__link"><span>GitHub<svg width="13.5" height="13.5" aria-hidden="true" viewBox="0 0 24 24" class="iconExternalLink_3J9K"><path fill="currentColor" d="M21 13v10h-21v-19h12v2h-10v15h17v-8h2zm3-12h-10.988l4.035 4-6.977 7.07 2.828 2.828 6.977-7.07 4.125 4.172v-11z"></path></svg></span></a><div class="react-toggle toggle_3Zt9 react-toggle--disabled"><div class="react-toggle-track" role="button" tabindex="-1"><div class="react-toggle-track-check"><span class="toggle_71bT">🌜</span></div><div class="react-toggle-track-x"><span class="toggle_71bT">🌞</span></div><div class="react-toggle-thumb"></div></div><input type="checkbox" class="react-toggle-screenreader-only" aria-label="Switch between dark and light mode"></div><div class="navbar__search"><span aria-label="expand searchbar" role="button" class="search-icon" tabindex="0"></span><input type="search" id="search_input_react" placeholder="Press S to Search..." aria-label="Search" class="navbar__search-input search-bar"></div></div></div><div role="presentation" class="navbar-sidebar__backdrop"></div></nav><div class="main-wrapper docPageContainer_2Kz0"><div class="docPage_1bdk"><div class="docSidebarContainer_1ykS"><div class="sidebar_15mo"><nav class="menu thin-scrollbar menu_Bmed menuWithAnnouncementBar_2WvA"><ul class="theme-doc-sidebar-menu menu__list"><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/Helium">​Helium</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link menu__link--active" aria-current="page" href="/Helium/api/Component">​Component</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/Store">​Store</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/BaseComponent">​Base​Component</a></li><li class="theme-doc-sidebar-item-link menu__list-item"><a class="menu__link" href="/Helium/api/Middleware">​Middleware</a></li></ul></nav><button type="button" title="Collapse sidebar" aria-label="Collapse sidebar" class="button button--secondary button--outline collapseSidebarButton_1CGd"><svg width="20" height="20" aria-hidden="true" class="collapseSidebarButtonIcon_3E-R"><g fill="#7a7a7a"><path d="M9.992 10.023c0 .2-.062.399-.172.547l-4.996 7.492a.982.982 0 01-.828.454H1c-.55 0-1-.453-1-1 0-.2.059-.403.168-.551l4.629-6.942L.168 3.078A.939.939 0 010 2.528c0-.548.45-.997 1-.997h2.996c.352 0 .649.18.828.45L9.82 9.472c.11.148.172.347.172.55zm0 0"></path><path d="M19.98 10.023c0 .2-.058.399-.168.547l-4.996 7.492a.987.987 0 01-.828.454h-3c-.547 0-.996-.453-.996-1 0-.2.059-.403.168-.551l4.625-6.942-4.625-6.945a.939.939 0 01-.168-.55 1 1 0 01.996-.997h3c.348 0 .649.18.828.45l4.996 7.492c.11.148.168.347.168.55zm0 0"></path></g></svg></button></div></div><main class="docMainContainer_28N5"><div class="container padding-vert--lg"><div class="row"><div class="col docItemCol_3WPG"><div class="docItemContainer_3XDu"><article><div class="member_qHIL markdown"><div class="tocCollapsible_1PrD theme-doc-toc-mobile tocMobile_3ryM"><button type="button" class="clean-btn tocCollapsibleButton_2O1e">On this page</button></div><header><h1 class="docTitle_1ddc" style="text-decoration:none"><span style="display:inline-block">Component</span></h1><div class="luaClassTags_2Zrs"></div><div>
+<p>Components are classes that can be extended and built upon. Like <a href="https://github.com/Roblox/roact/" title="Roact by Roblox" target="_blank">Roact</a> components, they represent a reusable object that you can create using constructors.</p>
+<p>You can create and destroy Components using standard Luau class methods.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> AwesomeComponent <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span><span class="token string">"AwesomeComponent"</span><span class="token punctuation">)</span>
+<span class="token keyword">local</span> Object <span class="token operator">=</span> AwesomeComponent<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+Object<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+<p>To declare our first Component class, Helium provides the following API:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Helium <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>Helium<span class="token punctuation">)</span>
+<span class="token keyword">local</span> MyComponent <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Component<span class="token punctuation">.</span><span class="token function">Extend</span><span class="token punctuation">(</span><span class="token string">"MyComponent"</span><span class="token punctuation">)</span>
+</code></pre>
+<p>When a new Component object is created using <code>MyComponent.new()</code>, the <code>Constructor</code> function is called with the same arguments passed through <code>new</code>. Here is a simple printer component:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Printer <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Component<span class="token punctuation">.</span><span class="token function">Extend</span><span class="token punctuation">(</span><span class="token string">"Printer"</span><span class="token punctuation">)</span>
+
+<span class="token keyword">function</span> Printer<span class="token punctuation">:</span><span class="token function">Constructor</span><span class="token punctuation">(</span>Message<span class="token punctuation">:</span> string<span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Message <span class="token operator">=</span> Message
+<span class="token keyword">end</span>
+
+<span class="token keyword">function</span> Printer<span class="token punctuation">:</span><span class="token function">Print</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token function">print</span><span class="token punctuation">(</span>self<span class="token punctuation">.</span>Message<span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> MyPrinter <span class="token operator">=</span> Printer<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"Hello, World!"</span><span class="token punctuation">)</span>
+MyPrinter<span class="token punctuation">:</span><span class="token function">Print</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">-- Hello, World!</span>
+MyPrinter<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">-- ( Currently has no effect, but is still a thing we can do )</span>
+</code></pre>
+<p>While this has nothing to do with UI, it is a good example of the object-oriented structure we will be using for the rest of the tutorial.</p>
+<h3>UI components</h3>
+<p>
+  Helium gives total control over what a component does when it is constructed. You can create as many Gui objects as you like, and update them however you like.
+  The information we actually display to the user can be controlled using the Component class' <code>:Redraw()</code> method.
+</p>
+<div class="admonition admonition-warning alert alert--danger">
+  <div class="admonition-heading">
+    <h5><span class="admonition-icon"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="16" viewBox="0 0 12 16">
+          <path d="M5.05.31c.81 2.17.41 3.38-.52 4.31C3.55 5.67 1.98 6.45.9 7.98c-1.45 2.05-1.7 6.53 3.53 7.7-2.2-1.16-2.67-4.52-.3-6.61-.61 2.03.53 3.33 1.94 2.86 1.39-.47 2.3.53 2.27 1.67-.02.78-.31 1.44-1.13 1.81 3.42-.59 4.78-3.42 4.78-5.56 0-2.84-2.53-3.22-1.25-5.61-1.52.13-2.03 1.13-1.89 2.75.09 1.08-1.02 1.8-1.86 1.33-.67-.41-.66-1.19-.06-1.78C8.18 5.31 8.68 2.45 5.05.32L5.03.3l.02.01z"></path>
+        </svg></span>warning</h5>
+  </div>
+  <div class="admonition-content">
+    <p>Never ever call <code>:Redraw()</code> directly. This method is automatically called next <code>RenderStepped</code>, <code>Heartbeat</code> or <code>Stepped</code> event depending on what was set as the <code>RedrawBinding</code>.</p>
+  </div>
+</div>
+<p>
+  To queue a redraw on the next frame, use <code>self.QueueRedraw()</code> instead. This is an anonymous, idempotent function that tells Helium to call <code>:Redraw()</code> automatically on the next <code>RedrawBinding</code> step.
+  It should be noted that when a component is constructed, Helium automatically calls <code>self.QueueRedraw()</code> once.
+</p>
+<p>We can control whether <code>:Redraw()</code> is called on by using the static <code>RedrawBinding</code> property of components. This is an Enum which you can access by doing <code>Helium.RedrawBinding.</code>.</p>
+<p>Let's say we wanted to create a <code>CoinsDisplay</code> component, which draws some representation of how many coins a player has.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Helium <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>Helium<span class="token punctuation">)</span>
+<span class="token keyword">local</span> CoinsDisplay <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Component<span class="token punctuation">.</span><span class="token function">Extend</span><span class="token punctuation">(</span><span class="token string">"CoinsDisplay"</span><span class="token punctuation">)</span>
+
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Coins <span class="token operator">=</span> <span class="token number">0</span>
+
+	self<span class="token punctuation">.</span>Gui <span class="token operator">=</span> Instance<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"ScreenGui"</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>CoinsLabel <span class="token operator">=</span> Instance<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"TextLabel"</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Size <span class="token operator">=</span> UDim2<span class="token punctuation">.</span><span class="token function">fromOffset</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">,</span> <span class="token number">100</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Parent <span class="token operator">=</span> self<span class="token punctuation">.</span>Gui
+
+	self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>Parent <span class="token operator">=</span> Players<span class="token punctuation">.</span>LocalPlayer<span class="token punctuation">:</span><span class="token function">WaitForChild</span><span class="token punctuation">(</span><span class="token string">"PlayerGui"</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">AddCoin</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Coins <span class="token operator">+</span><span class="token operator">=</span> <span class="token number">1</span>
+	self<span class="token punctuation">.</span><span class="token function">QueueRedraw</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+
+CoinsDisplay<span class="token punctuation">.</span>RedrawBinding <span class="token operator">=</span> Helium<span class="token punctuation">.</span>RedrawBinding<span class="token punctuation">.</span>Heartbeat
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Redraw</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Text <span class="token operator">=</span> self<span class="token punctuation">.</span>Coins
+<span class="token keyword">end</span>
+
+<span class="token comment">-- Add 1 coin every second</span>
+<span class="token keyword">local</span> MyCoinsDisplay <span class="token operator">=</span> CoinsDisplay<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">while</span> <span class="token keyword">true</span> <span class="token keyword">do</span>
+	task<span class="token punctuation">.</span><span class="token function">wait</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+	MyCoinsDisplay<span class="token punctuation">:</span><span class="token function">AddCoin</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+</code></pre>
+<p>
+  <img src="https://i.imgur.com/QqGKiJs.gif" alt="ComponentExample">
+</p>
+<p>As you can see this component functions as intended. However, there is one small problem: What would happen if we were to destroy the CoinDisplay component?</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> MyCoinsDisplay <span class="token operator">=</span> CoinsDisplay<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+MyCoinsDisplay<span class="token punctuation">:</span><span class="token function">AddCoin</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+MyCoinsDisplay<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+</code></pre>
+<p>
+  <img src="https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example2.png?raw=true" alt="Bad">
+</p>
+<p>
+  Now, wait a minute... why is the Gui still appearing? Furthermore, why are we seeing the text "Label" instead of the number 1 or 0?
+  While it's true that the state of <code>self.Coins</code> should have been set to 1 after calling <code>:AddCoin()</code>, the <code>MyCoinsDisplay</code> object was destroyed before the next <code>Heartbeat</code> frame started.
+</p>
+<p>Thus, even though <code>self.QueueRedraw()</code> was called, this line of code never ran, as Helium automatically unbinds queued redraws once a component is destroyed:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Redraw</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Text <span class="token operator">=</span> self<span class="token punctuation">.</span>Coins
+<span class="token keyword">end</span>
+</code></pre>
+<p>Since the Text property was never set, it was left with the default value of all TextLabel objects: "Label".</p>
+<p>We also have one other problem: the <code>Gui</code> and <code>coinsLabel</code> objects are still parented to PlayerGui when <code>CoinsDisplay:Destroy()</code> is called. While we could define a destructor and remove them there:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">-- Note: Do not do this</span>
+	self<span class="token punctuation">.</span>Gui<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+</code></pre>
+<div class="admonition admonition-warning alert alert--danger">
+  <div class="admonition-heading">
+    <h5><span class="admonition-icon"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="16" viewBox="0 0 12 16">
+          <path d="M5.05.31c.81 2.17.41 3.38-.52 4.31C3.55 5.67 1.98 6.45.9 7.98c-1.45 2.05-1.7 6.53 3.53 7.7-2.2-1.16-2.67-4.52-.3-6.61-.61 2.03.53 3.33 1.94 2.86 1.39-.47 2.3.53 2.27 1.67-.02.78-.31 1.44-1.13 1.81 3.42-.59 4.78-3.42 4.78-5.56 0-2.84-2.53-3.22-1.25-5.61-1.52.13-2.03 1.13-1.89 2.75.09 1.08-1.02 1.8-1.86 1.33-.67-.41-.66-1.19-.06-1.78C8.18 5.31 8.68 2.45 5.05.32L5.03.3l.02.01z"></path>
+        </svg></span>warning</h5>
+  </div>
+  <div class="admonition-content">
+    <p><strong>Never</strong> overwrite the <code>:Destroy</code> method, doing so all but guarantees you'll have a major problem down the line.</p>
+  </div>
+</div>
+<p>The problem is that keeping track of every every object that is created can become unmanageable, especially after creating a large number of components</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">function</span> MyApp<span class="token punctuation">:</span><span class="token function">Constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>MyComponentA <span class="token operator">=</span> ComponentA<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token punctuation">...</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>MyComponentB <span class="token operator">=</span> ComponentB<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token punctuation">...</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>MyComponentC <span class="token operator">=</span> ComponentC<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token punctuation">...</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>MyFrame <span class="token operator">=</span> Instance<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"Frame"</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">function</span> MyApp<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token comment">-- Note: Do not do this</span>
+	self<span class="token punctuation">.</span>MyComponentA<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>MyComponentB<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>MyComponentC<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>MyFrame<span class="token punctuation">:</span><span class="token function">Destroy</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+</code></pre>
+<p>
+  Seems like a lot of work, right? Now, if you want to add or remove elements from your UI Component, you have to also add or remove it from the Destructor. If you forget to do this, bad things can happen.
+  Furthermore, what if components/Gui Objects are created during <code>MyApp:Redraw()</code> rather than <code>MyComponent:Constructor()</code>? Now you have to use an if statement to conditionally check if the object even
+  exists, and if it does, destroy it in the destructor.
+</p>
+<p>Helium utilizes the Janitor object for Component destructors. You can read more about it on the <a href="https://howmanysmall.github.io/Janitor/" target="_blank">Janitor documentation site</a>.</p>
+<p>Going back to the CoinsDisplay example, our <code>Janitor</code> object can be utilized in the constructor as follows:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Coins <span class="token operator">=</span> <span class="token number">0</span>
+
+	self<span class="token punctuation">.</span>Gui <span class="token operator">=</span> self<span class="token punctuation">.</span>Janitor<span class="token punctuation">:</span><span class="token function">Add</span><span class="token punctuation">(</span>Instance<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"ScreenGui"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"Destroy"</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>CoinsLabel <span class="token operator">=</span> self<span class="token punctuation">.</span>Janitor<span class="token punctuation">:</span><span class="token function">Add</span><span class="token punctuation">(</span>Instance<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"TextLabel"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"Destroy"</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Size <span class="token operator">=</span> UDim2<span class="token punctuation">.</span><span class="token function">fromOffset</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">,</span> <span class="token number">100</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Parent <span class="token operator">=</span> self<span class="token punctuation">.</span>Gui
+
+	self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>Parent <span class="token operator">=</span> Players<span class="token punctuation">.</span>LocalPlayer<span class="token punctuation">:</span><span class="token function">WaitForChild</span><span class="token punctuation">(</span><span class="token string">"PlayerGui"</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+</code></pre>
+<p>
+  <code>:Add()</code> is a special function that takes in an object that can be called. If the Janitor is given an Instance, then that instance will automatically be destroyed when the Component is destroyed.
+  The first argument is meant for the object you are passing. The second argument is the either <code>true</code> for functions or a string for the name of the function to call. You can see the API for <a href="https://howmanysmall.github.io/Janitor/api/Janitor#Add" target="_blank">Janitor:Add</a> for more information.
+  When the Component is destroyed, the <code>:Destroy()</code> method of the Janitor will be called which in turn cleans up everything in the Janitor.
+</p>
+<hr>
+<h3>Improving our Component class</h3>
+<p>
+  Now, I will attempt to explain some improvements that can be made to our <code>CoinDisplay</code> code.
+  First of all, we don't actually need to create our gui objects until <code>:Redraw()</code> is called. For the sake of separation of concerns, it would be better to move that into the <code>:Redraw()</code> function.
+</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Coins <span class="token operator">=</span> <span class="token number">0</span>
+
+	<span class="token comment">-- Note: self.QueueRedraw() is automatically called after the CoinsDisplay object is created</span>
+<span class="token keyword">end</span>
+
+CoinsDisplay<span class="token punctuation">.</span>RedrawBinding <span class="token operator">=</span> Helium<span class="token punctuation">.</span>RedrawBinding<span class="token punctuation">.</span>Heartbeat
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Redraw</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token comment">-- This will run once on the first frame that our CoinsDisplay element is rendered (if it is rendered)</span>
+	<span class="token keyword">if</span> <span class="token keyword">not</span> self<span class="token punctuation">.</span>Gui <span class="token keyword">then</span>
+		self<span class="token punctuation">.</span>Gui <span class="token operator">=</span> self<span class="token punctuation">.</span>Janitor<span class="token punctuation">:</span><span class="token function">Add</span><span class="token punctuation">(</span>Instance<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"ScreenGui"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"Destroy"</span><span class="token punctuation">)</span>
+		self<span class="token punctuation">.</span>CoinsLabel <span class="token operator">=</span> self<span class="token punctuation">.</span>Janitor<span class="token punctuation">:</span><span class="token function">Add</span><span class="token punctuation">(</span>Instance<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"TextLabel"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"Destroy"</span><span class="token punctuation">)</span>
+		self<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Size <span class="token operator">=</span> UDim2<span class="token punctuation">.</span><span class="token function">fromOffset</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">,</span> <span class="token number">100</span><span class="token punctuation">)</span>
+		self<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Parent <span class="token operator">=</span> self<span class="token punctuation">.</span>Gui
+
+		self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>Parent <span class="token operator">=</span> Players<span class="token punctuation">.</span>LocalPlayer<span class="token punctuation">:</span><span class="token function">WaitForChild</span><span class="token punctuation">(</span><span class="token string">"PlayerGui"</span><span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+
+	self<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Text <span class="token operator">=</span> self<span class="token punctuation">.</span>Coins
+<span class="token keyword">end</span>
+</code></pre>
+<p>
+  See how much cleaner the constructor is? Now, when we want to locate the portion of code that draws what is displayed to the user, we need only look at the <code>:Redraw()</code> function.
+  Secondly, we do not need to keep track of our CoinsLabel frame, as it is already parented to our Gui (we also do not need to give it to the Component's Janitor for that matter).
+</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Redraw</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token keyword">if</span> <span class="token keyword">not</span> self<span class="token punctuation">.</span>Gui <span class="token keyword">then</span>
+		self<span class="token punctuation">.</span>Gui <span class="token operator">=</span> self<span class="token punctuation">.</span>Janitor<span class="token punctuation">:</span><span class="token function">Add</span><span class="token punctuation">(</span>Instance<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"ScreenGui"</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"Destroy"</span><span class="token punctuation">)</span> <span class="token comment">-- Only the gui needs to be given to the janitor.</span>
+
+		<span class="token keyword">local</span> CoinsLabel <span class="token operator">=</span> Instance<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token string">"TextLabel"</span><span class="token punctuation">)</span>
+		CoinsLabel<span class="token punctuation">.</span>Name <span class="token operator">=</span> <span class="token string">"CoinsLabel"</span>
+		CoinsLabel<span class="token punctuation">.</span>Size <span class="token operator">=</span> UDim2<span class="token punctuation">.</span><span class="token function">fromOffset</span><span class="token punctuation">(</span><span class="token number">100</span><span class="token punctuation">,</span> <span class="token number">100</span><span class="token punctuation">)</span>
+		CoinsLabel<span class="token punctuation">.</span>Parent <span class="token operator">=</span> self<span class="token punctuation">.</span>Gui
+
+		self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>Parent <span class="token operator">=</span> Players<span class="token punctuation">.</span>LocalPlayer<span class="token punctuation">:</span><span class="token function">WaitForChild</span><span class="token punctuation">(</span><span class="token string">"PlayerGui"</span><span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+
+	self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Text <span class="token operator">=</span> self<span class="token punctuation">.</span>Coins <span class="token comment">-- Here we index gui instead of coinsLabel, I don't personally recommend this because it's extra indexing for no reason.</span>
+<span class="token keyword">end</span>
+</code></pre>
+<hr>
+<p>We deferred creation of our <code>self.Gui</code> object until <code>:Redraw()</code> is called by Helium. However, there is one small problem with our code:</p>
+<pre class="language-lua"><code class="language-lua">self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>Parent <span class="token operator">=</span> Players<span class="token punctuation">.</span>LocalPlayer<span class="token punctuation">:</span><span class="token function">WaitForChild</span><span class="token punctuation">(</span><span class="token string">"PlayerGui"</span><span class="token punctuation">)</span>
+</code></pre>
+<p>
+  This <code>:WaitForChild()</code> is a yielding function. Yielding on a Redraw means our code could be subject to race conditions. In general, you should avoid yielding within <code>:Redraw()</code> wherever possible.
+  Furthermore, it is not ideal to hardcode the parent in which our component's UI is placed. What if, for example, we wanted to nest a <code>CoinsDisplay</code> object inside of another menu? Let's define the
+  parent in which we want to place the component as a parameter of the <code>CoinsDisplay</code> constructor:
+</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Constructor</span><span class="token punctuation">(</span>Parent<span class="token punctuation">:</span> Instance<span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Coins <span class="token operator">=</span> <span class="token number">0</span>
+	self<span class="token punctuation">.</span>Parent <span class="token operator">=</span> Parent
+<span class="token keyword">end</span>
+
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Redraw</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token keyword">if</span> <span class="token keyword">not</span> self<span class="token punctuation">.</span>Gui <span class="token keyword">then</span>
+		<span class="token punctuation">...</span>
+		self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>Parent <span class="token operator">=</span> self<span class="token punctuation">.</span>Parent
+	<span class="token keyword">end</span>
+
+	self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Text <span class="token operator">=</span> self<span class="token punctuation">.</span>Coins
+<span class="token keyword">end</span>
+</code></pre>
+<p>Now, when we create our component, we should provide it with a parent argument:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> PlayerGui <span class="token operator">=</span> Players<span class="token punctuation">.</span>LocalPlayer<span class="token punctuation">:</span><span class="token function">WaitForChild</span><span class="token punctuation">(</span><span class="token string">"PlayerGui"</span><span class="token punctuation">)</span>
+
+<span class="token comment">-- Add 1 coin every second</span>
+<span class="token keyword">local</span> MyCoinsDisplay <span class="token operator">=</span> CoinsDisplay<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span>PlayerGui<span class="token punctuation">)</span>
+<span class="token keyword">while</span> <span class="token keyword">true</span> <span class="token keyword">do</span>
+	task<span class="token punctuation">.</span><span class="token function">wait</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+	MyCoinsDisplay<span class="token punctuation">:</span><span class="token function">AddCoin</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+</code></pre>
+<p>There is one other thing that will make the code simpler: UI Templates. Because Helium gives us full control over how our GUI elements are created, we can place a template inside of our component's module:</p>
+<p>
+  <img src="https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example3.png?raw=true" alt="example">
+</p>
+<h2>Final Code</h2>
+<p>Here is the final code for the CoinsDisplay module:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Helium <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>Helium<span class="token punctuation">)</span>
+<span class="token keyword">local</span> CoinsDisplay <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Component<span class="token punctuation">.</span><span class="token function">Extend</span><span class="token punctuation">(</span><span class="token string">"CoinsDisplay"</span><span class="token punctuation">)</span>
+
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Constructor</span><span class="token punctuation">(</span>Parent<span class="token punctuation">:</span> Instance<span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Coins <span class="token operator">=</span> <span class="token number">0</span>
+	self<span class="token punctuation">.</span>Parent <span class="token operator">=</span> Parent
+<span class="token keyword">end</span>
+
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">AddCoin</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Coins <span class="token operator">+</span><span class="token operator">=</span> <span class="token number">1</span>
+	self<span class="token punctuation">.</span><span class="token function">QueueRedraw</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+
+CoinsDisplay<span class="token punctuation">.</span>RedrawBinding <span class="token operator">=</span> Helium<span class="token punctuation">.</span>RedrawBinding<span class="token punctuation">.</span>Heartbeat
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Redraw</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token keyword">if</span> <span class="token keyword">not</span> self<span class="token punctuation">.</span>Gui <span class="token keyword">then</span>
+		self<span class="token punctuation">.</span>Gui <span class="token operator">=</span> self<span class="token punctuation">.</span>Janitor<span class="token punctuation">:</span><span class="token function">Add</span><span class="token punctuation">(</span>script<span class="token punctuation">.</span>CoinsDisplayTemplate<span class="token punctuation">:</span><span class="token function">Clone</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"Destroy"</span><span class="token punctuation">)</span>
+		self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>Parent <span class="token operator">=</span> self<span class="token punctuation">.</span>Parent
+	<span class="token keyword">end</span>
+
+	self<span class="token punctuation">.</span>Gui<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Text <span class="token operator">=</span> <span class="token string">"Coins: "</span> <span class="token operator">..</span> self<span class="token punctuation">.</span>Coins
+<span class="token keyword">end</span>
+
+<span class="token keyword">return</span> CoinsDisplay
+</code></pre>
+<p>And here is a LocalScript that utilizes the module:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> CoinsDisplay <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>CoinsDisplay<span class="token punctuation">)</span>
+<span class="token keyword">local</span> PlayerGui <span class="token operator">=</span> Players<span class="token punctuation">.</span>LocalPlayer<span class="token punctuation">:</span><span class="token function">WaitForChild</span><span class="token punctuation">(</span><span class="token string">"PlayerGui"</span><span class="token punctuation">)</span>
+
+<span class="token comment">-- Add 1 coin every second</span>
+<span class="token keyword">local</span> MyCoinsDisplay <span class="token operator">=</span> CoinsDisplay<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span>PlayerGui<span class="token punctuation">)</span>
+<span class="token keyword">while</span> <span class="token keyword">true</span> <span class="token keyword">do</span>
+	task<span class="token punctuation">.</span><span class="token function">wait</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+	MyCoinsDisplay<span class="token punctuation">:</span><span class="token function">AddCoin</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+</code></pre>
+<p>
+  <img src="https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example4.gif?raw=true" alt="example">
+</p>
+<hr>
+<h1>1.2 Component State Reduction</h1>
+<h2>The Observer Pattern</h2>
+<p>In order to understand how we can re-draw our components based on store updates, we must first look at the way in which the Helium Store propogates updates</p>
+<p>As we saw in the last tutorial, reducers are given a special function <code>SetState()</code>, which mutates a value in the store.</p>
+<p>Technically, for the root reducer, the actual function <code>GetState()</code> passed to the reducer is <code>Store:GetState()</code>, and the actual function <code>SetState()</code> is <code>Store:SetState()</code>.</p>
+<p>What <code>Store:GetState(...KeyPath)</code> does is parse a provided series of string keys until a value is found in the store. If a key does not exist at a given path, the store will return <code>nil</code>. For the sake of mutation safety, the store will NOT directly return tables in the store when calling <code>Store:GetState(...)</code>; instead, tables will be deeply cloned, then returned.</p>
+<p>If you want to keep a table in the store that is directly mutable when it is retrieved using <code>get()</code>, you can create a pointer to it by wrapping it in a function:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">CreateFenv</span><span class="token punctuation">(</span>Value<span class="token punctuation">:</span> any<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+		<span class="token keyword">return</span> Value
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> Table <span class="token operator">=</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+Store<span class="token punctuation">:</span><span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"Table"</span><span class="token punctuation">,</span> <span class="token function">CreateFenv</span><span class="token punctuation">(</span>Table<span class="token punctuation">)</span><span class="token punctuation">)</span>
+
+<span class="token comment">---...</span>
+
+<span class="token keyword">local</span> PointsToTable <span class="token operator">=</span> Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"Table"</span><span class="token punctuation">)</span>
+<span class="token function">print</span><span class="token punctuation">(</span>Table <span class="token operator">==</span> <span class="token function">PointsToTable</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token comment">-- true</span>
+</code></pre>
+<pre class="language-cpp"><code class="language-cpp">RbxInstance <span class="token function">CreateFenv</span><span class="token punctuation">(</span><span class="token keyword">void</span><span class="token punctuation">)</span> <span class="token operator">:</span> <span class="token punctuation">(</span>RbxInstance Value<span class="token punctuation">)</span>
+<span class="token punctuation">{</span>
+	<span class="token keyword">return</span> Value<span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+GenericDictionary Table <span class="token operator">=</span> <span class="token function">table</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token class-name">Store</span><span class="token double-colon punctuation">::</span><span class="token function">SetState</span><span class="token punctuation">(</span>L<span class="token string">"Table"</span><span class="token punctuation">,</span> CreateFenv<span class="token operator">:</span><span class="token punctuation">(</span>Table<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// ...</span>
+
+<span class="token keyword">void</span> PointsToTable <span class="token operator">=</span> Store<span class="token double-colon punctuation">::</span>GetState @ Table<span class="token punctuation">;</span>
+<span class="token function">print</span><span class="token punctuation">(</span>Table <span class="token operator">==</span> <span class="token function">PointsToTable</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span> <span class="token comment">// true</span>
+</code></pre>
+<p>Whereas <code>GetState()</code> does more than directly returning the value in the store, the function <code>SetState()</code> also does more than just mutating the value in the store. When <code>store:SetState()</code> is called, it keeps track of each key that was changed, and notifies any observers of the change.</p>
+<p>We can observe store changes using the <code>Store:Connect("Path.To.Key", Function)</code> function. Unlike <code>GetState</code> and <code>SetState</code>, the key path is denoted using the dot notation. Subscribing to the empty string <code>""</code> will observe all store changes.</p>
+<p>Example:</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Store <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span><span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>PlayerStats <span class="token operator">=</span> <span class="token punctuation">{</span>Coins <span class="token operator">=</span> <span class="token number">0</span><span class="token punctuation">}</span><span class="token punctuation">}</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> Disconnect <span class="token operator">=</span> Store<span class="token punctuation">:</span><span class="token function">Connect</span><span class="token punctuation">(</span><span class="token string">"PlayerStats.Coins"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+	<span class="token keyword">local</span> Coins <span class="token operator">=</span> Store<span class="token punctuation">:</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token string">"PlayerStats.Coins"</span><span class="token punctuation">)</span>
+	<span class="token function">print</span><span class="token punctuation">(</span><span class="token string">"You have"</span><span class="token punctuation">,</span> coins<span class="token punctuation">,</span> <span class="token string">"Coins"</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+Store<span class="token punctuation">:</span><span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"PlayerStats"</span><span class="token punctuation">,</span> <span class="token string">"Coins"</span><span class="token punctuation">,</span> <span class="token number">10</span><span class="token punctuation">)</span> <span class="token comment">-- You have 10 Coins</span>
+<span class="token function">Disconnect</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+Store<span class="token punctuation">:</span><span class="token function">SetState</span><span class="token punctuation">(</span><span class="token string">"PlayerStats"</span><span class="token punctuation">,</span> <span class="token string">"Coins"</span><span class="token punctuation">,</span> <span class="token number">20</span><span class="token punctuation">)</span> <span class="token comment">-- No output.</span>
+</code></pre>
+<h2>Observing with Components</h2>
+<p>Our Components can listen to changes in a store and automatically queue updates when a value in the store has changed. In order to do this, some preconditions need to be set:</p>
+<ol>
+  <li>The component needs to know what store to observe changes from</li>
+  <li>The component needs to know what key paths to subscribe to, and how to display them.</li>
+</ol>
+<p>The first precondition is simple: We can simply pass the store in as an argument in the Component's constructor. <strong>In fact, Helium Components must receive a store as the first argument in their constructor in order to observe changes from that store</strong>.</p>
+<p>While passing the same first argument through every single component down the tree of components may seem verbose, this actually makes it easy to differentiate "Container Components" (which are generally coupled with a particular segment of the application) from "Presentational Components" (which can generally be re-used throughout the application). More on that in a later tutorial.</p>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Constructor</span><span class="token punctuation">(</span>Store<span class="token punctuation">,</span> Parent<span class="token punctuation">:</span> Instance<span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Parent <span class="token operator">=</span> Parent
+	self<span class="token punctuation">.</span>Store <span class="token operator">=</span> Store
+<span class="token keyword">end</span>
+</code></pre>
+<p>
+  In this instance, we set <code>self.Store = Store</code> so that we can keep track of the store in case we need to give it to a nested component in our redraw function (similar to how we keep track of <code>Parent</code> in order to know where we should inevitably place the copy of our component's template).
+  Now what we want is to subscribe to a value in the store (say, 'Coins'), and automatically call <code>self.QueueRedraw()</code> whenever this state changes. Helium provides an easy way of doing this for Components using a property called <code>Reduction</code>:
+</p>
+<pre class="language-lua"><code class="language-lua">CoinsDisplay<span class="token punctuation">.</span>Reduction <span class="token operator">=</span> <span class="token punctuation">{</span>Coins <span class="token operator">=</span> <span class="token string">"Store.Path.To.Coins"</span><span class="token punctuation">}</span>
+</code></pre>
+<p>This will automatically subscribe new CoinsDisplay components from the keypath on the right-hand side (<code>"Store.Path.To.Coins"</code>), and map it to the value on the left-hand side (<code>"Coins"</code>). The reduced state will then be passed in as a table, as the first argument to <code>CoinsDisplay:Redraw()</code></p>
+<pre class="language-lua"><code class="language-lua">CoinsDisplay<span class="token punctuation">.</span>Reduction <span class="token operator">=</span> <span class="token punctuation">{</span>Coins <span class="token operator">=</span> <span class="token string">"Store.Path.To.Coins"</span><span class="token punctuation">}</span>
+CoinsDisplay<span class="token punctuation">.</span>RedrawBinding <span class="token operator">=</span> Helium<span class="token punctuation">.</span>RedrawBinding<span class="token punctuation">.</span>Heartbeat
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Redraw</span><span class="token punctuation">(</span>ReducedState<span class="token punctuation">)</span>
+	<span class="token keyword">local</span> Gui <span class="token operator">=</span> self<span class="token punctuation">.</span>Gui
+	<span class="token keyword">if</span> <span class="token keyword">not</span> Gui <span class="token keyword">then</span>
+		Gui <span class="token operator">=</span> self<span class="token punctuation">.</span>Janitor<span class="token punctuation">:</span><span class="token function">Add</span><span class="token punctuation">(</span>script<span class="token punctuation">.</span>CoinsDisplayTemplate<span class="token punctuation">:</span><span class="token function">Clone</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"Destroy"</span><span class="token punctuation">)</span>
+		Gui<span class="token punctuation">.</span>Parent <span class="token operator">=</span> self<span class="token punctuation">.</span>Parent
+		self<span class="token punctuation">.</span>Gui <span class="token operator">=</span> Gui
+	<span class="token keyword">end</span>
+
+	<span class="token comment">-- Now we can display from ReducedState.Coins instead of self.Coins.</span>
+	<span class="token comment">-- In fact, we can get rid of self.Coins now that all our data is coming from the store.</span>
+	Gui<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Text <span class="token operator">=</span> <span class="token string">"Coins: "</span> <span class="token operator">..</span> ReducedState<span class="token punctuation">.</span>Coins
+<span class="token keyword">end</span>
+</code></pre>
+<p>We can now get rid of the <code>self.coins</code> property initialized in the constructor. In fact, we can also get rid of the <code>CoinsDisplay:AddCoin()</code> method we defined earlier, and replace it with actions such as <code>ADD_COINS</code> that we created in the last tutorial. Putting it all together:</p>
+<h2>Final Code</h2>
+<h3>ReplicatedStorage.CoinsDisplay ModuleScript</h3>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> ReplicatedStorage <span class="token operator">=</span> game<span class="token punctuation">:</span><span class="token function">GetService</span><span class="token punctuation">(</span><span class="token string">"ReplicatedStorage"</span><span class="token punctuation">)</span>
+<span class="token keyword">local</span> Helium <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>Helium<span class="token punctuation">)</span>
+<span class="token keyword">local</span> CoinsDisplay <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Component<span class="token punctuation">.</span><span class="token function">Extend</span><span class="token punctuation">(</span><span class="token string">"CoinsDisplay"</span><span class="token punctuation">)</span>
+
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Constructor</span><span class="token punctuation">(</span>Store<span class="token punctuation">,</span> Parent<span class="token punctuation">:</span> Instance<span class="token punctuation">)</span>
+	self<span class="token punctuation">.</span>Store <span class="token operator">=</span> Store
+	self<span class="token punctuation">.</span>Parent <span class="token operator">=</span> Parent
+<span class="token keyword">end</span>
+
+type ReducedState <span class="token operator">=</span> <span class="token punctuation">{</span>Coins<span class="token punctuation">:</span> number<span class="token punctuation">}</span>
+
+CoinsDisplay<span class="token punctuation">.</span>Reduction <span class="token operator">=</span> <span class="token punctuation">{</span>Coins <span class="token operator">=</span> <span class="token string">""</span><span class="token punctuation">}</span> <span class="token comment">-- In this example, our store state is equivalent to coins</span>
+CoinsDisplay<span class="token punctuation">.</span>RedrawBinding <span class="token operator">=</span> Helium<span class="token punctuation">.</span>RedrawBinding<span class="token punctuation">.</span>Heartbeat
+<span class="token keyword">function</span> CoinsDisplay<span class="token punctuation">:</span><span class="token function">Redraw</span><span class="token punctuation">(</span>ReducedState<span class="token punctuation">:</span> ReducedState<span class="token punctuation">)</span>
+	<span class="token keyword">local</span> Gui <span class="token operator">=</span> self<span class="token punctuation">.</span>Gui
+	<span class="token keyword">if</span> <span class="token keyword">not</span> Gui <span class="token keyword">then</span>
+		Gui <span class="token operator">=</span> self<span class="token punctuation">.</span>Janitor<span class="token punctuation">:</span><span class="token function">Add</span><span class="token punctuation">(</span>script<span class="token punctuation">.</span>CoinsDisplayTemplate<span class="token punctuation">:</span><span class="token function">Clone</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token string">"Destroy"</span><span class="token punctuation">)</span>
+		Gui<span class="token punctuation">.</span>Parent <span class="token operator">=</span> self<span class="token punctuation">.</span>Parent
+		self<span class="token punctuation">.</span>Gui <span class="token operator">=</span> Gui
+	<span class="token keyword">end</span>
+
+	Gui<span class="token punctuation">.</span>CoinsLabel<span class="token punctuation">.</span>Text <span class="token operator">=</span> <span class="token string">"Coins: "</span> <span class="token operator">..</span> ReducedState<span class="token punctuation">.</span>Coins
+<span class="token keyword">end</span>
+
+<span class="token keyword">return</span> CoinsDisplay
+</code></pre>
+<h3>A LocalScript:</h3>
+<pre class="language-lua"><code class="language-lua"><span class="token keyword">local</span> Players <span class="token operator">=</span> game<span class="token punctuation">:</span><span class="token function">GetService</span><span class="token punctuation">(</span><span class="token string">"Players"</span><span class="token punctuation">)</span>
+<span class="token keyword">local</span> ReplicatedStorage <span class="token operator">=</span> game<span class="token punctuation">:</span><span class="token function">GetService</span><span class="token punctuation">(</span><span class="token string">"ReplicatedStorage"</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> CoinsDisplay <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>CoinsDisplay<span class="token punctuation">)</span>
+<span class="token keyword">local</span> Helium <span class="token operator">=</span> <span class="token function">require</span><span class="token punctuation">(</span>ReplicatedStorage<span class="token punctuation">.</span>Helium<span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> PlayerGui <span class="token operator">=</span> Players<span class="token punctuation">.</span>LocalPlayer<span class="token punctuation">:</span><span class="token function">WaitForChild</span><span class="token punctuation">(</span><span class="token string">"PlayerGui"</span><span class="token punctuation">)</span>
+
+<span class="token keyword">local</span> AddCoins <span class="token operator">=</span> Helium<span class="token punctuation">.</span><span class="token function">MakeActionCreator</span><span class="token punctuation">(</span><span class="token string">"AddCoins"</span><span class="token punctuation">,</span> <span class="token keyword">function</span><span class="token punctuation">(</span>Amount<span class="token punctuation">:</span> number<span class="token punctuation">)</span>
+	<span class="token keyword">return</span> <span class="token punctuation">{</span>Amount <span class="token operator">=</span> Amount<span class="token punctuation">}</span>
+<span class="token keyword">end</span><span class="token punctuation">)</span>
+
+type BaseAction <span class="token operator">=</span> <span class="token punctuation">{</span>Type<span class="token punctuation">:</span> string<span class="token punctuation">}</span>
+
+<span class="token keyword">local</span> <span class="token keyword">function</span> <span class="token function">Reducer</span><span class="token punctuation">(</span>Action<span class="token punctuation">:</span> BaseAction<span class="token punctuation">,</span> GetState<span class="token punctuation">,</span> SetState<span class="token punctuation">)</span>
+	<span class="token keyword">if</span> Action<span class="token punctuation">.</span>Type <span class="token operator">==</span> AddCoins<span class="token punctuation">.</span>ActionName <span class="token keyword">then</span>
+		<span class="token function">SetState</span><span class="token punctuation">(</span><span class="token function">GetState</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">+</span> Action<span class="token punctuation">.</span>Amount<span class="token punctuation">)</span>
+	<span class="token keyword">end</span>
+<span class="token keyword">end</span>
+
+<span class="token keyword">local</span> InitialState <span class="token operator">=</span> <span class="token number">0</span>
+
+<span class="token comment">-- Create the store</span>
+<span class="token keyword">local</span> CoinsStore <span class="token operator">=</span> Helium<span class="token punctuation">.</span>Store<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span>Reducer<span class="token punctuation">,</span> InitialState<span class="token punctuation">)</span>
+
+<span class="token comment">-- Mount the root component; notice how CoinsStore is given as the first argument</span>
+CoinsDisplay<span class="token punctuation">.</span><span class="token function">new</span><span class="token punctuation">(</span>CoinsStore<span class="token punctuation">,</span> PlayerGui<span class="token punctuation">)</span>
+
+<span class="token comment">-- Add 1 coin every second (hopefully)</span>
+<span class="token keyword">while</span> <span class="token keyword">true</span> <span class="token keyword">do</span>
+	<span class="token keyword">local</span> DeltaTime <span class="token operator">=</span> task<span class="token punctuation">.</span><span class="token function">wait</span><span class="token punctuation">(</span><span class="token number">1</span><span class="token punctuation">)</span>
+	CoinsStore<span class="token punctuation">:</span><span class="token function">Fire</span><span class="token punctuation">(</span><span class="token function">AddCoins</span><span class="token punctuation">(</span>math<span class="token punctuation">.</span><span class="token function">floor</span><span class="token punctuation">(</span>DeltaTime<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+<span class="token keyword">end</span>
+</code></pre>
+<p>This should function exactly the same as before, but this time our coins are pulling directly from the store, and listening to action dispatches. We also don't need to store our <code>CoinsDisplay</code> instance as a variable in this case, nor do we need to directly tell the CoinsDisplay component to increment the state of 'coins'.</p>
+<hr>
+<div class="admonition admonition-info alert alert--info">
+  <div class="admonition-heading">
+    <h5><span class="admonition-icon"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="16" viewBox="0 0 14 16">
+          <path d="M7 2.3c3.14 0 5.7 2.56 5.7 5.7s-2.56 5.7-5.7 5.7A5.71 5.71 0 0 1 1.3 8c0-3.14 2.56-5.7 5.7-5.7zM7 1C3.14 1 0 4.14 0 8s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm1 3H6v5h2V4zm0 6H6v2h2v-2z"></path>
+        </svg></span>info</h5>
+  </div>
+  <div class="admonition-content">
+    <p>
+      All of this documentation is from the original <a href="https://github.com/headjoe3/Rocrastinate/tree/master/docs" target="_blank">Rocrastinate docs</a> and was written by DataBrain, so 100% of the credit should go to him.
+      All I did was modify it to fit Helium's API.
+    </p>
+  </div>
+</div>
+</div></header><h2><a aria-hidden="true" tabindex="-1" class="anchor anchor__h2 anchorWithStickyNavbar_31ik" id="types"></a>Types<a class="hash-link" href="#types" title="Direct link to heading">#</a></h2><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="PossibleLifecycleEvents"></a><code style="text-decoration:none">PossibleLifecycleEvents</code><a class="hash-link" href="#PossibleLifecycleEvents" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Component/init.lua#L764"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code class="purple__nFc">interface</code> <code>PossibleLifecycleEvents {</code><div class="inset_2cJr"><div><code>Destroyed: </code><code class="blue_2Afy">boolean?</code><span class="inlineDescription_17uy">-- <span>
+<p>Whether or not you want to create the <code>Destroyed</code> event.</p>
+</span></span></div><div><code>Destroying: </code><code class="blue_2Afy">boolean?</code><span class="inlineDescription_17uy">-- <span>
+<p>Whether or not you want to create the <code>Destroying</code> event.</p>
+</span></span></div><div><code>DidRedraw: </code><code class="blue_2Afy">boolean?</code><span class="inlineDescription_17uy">-- <span>
+<p>Whether or not you want to create the <code>DidRedraw</code> event.</p>
+</span></span></div><div><code>WillRedraw: </code><code class="blue_2Afy">boolean?</code><span class="inlineDescription_17uy">-- <span>
+<p>Whether or not you want to create the <code>WillRedraw</code> event.</p>
+</span></span></div></div><code>}</code></div><div></div><h2><a aria-hidden="true" tabindex="-1" class="anchor anchor__h2 anchorWithStickyNavbar_31ik" id="functions"></a>Functions<a class="hash-link" href="#functions" title="Direct link to heading">#</a></h2><div class="divider_3z1R"></div><h3><a aria-hidden="true" tabindex="-1" class="anchor anchor__h3 anchorWithStickyNavbar_31ik" id="Extend"></a><code style="text-decoration:none">Extend</code><a class="hash-link" href="#Extend" title="Direct link to heading">#</a></h3><div class="repositoryDetailsContainer_1UH0"><a class="sourceButton_2aE5" href="https://github.com/howmanysmall/Helium/blob/main/src/Component/init.lua#L781"><div class="sourceButtonText_monK">&lt;/&gt;</div></a></div><div class="memberString_P8-X"><code>Component.</code><code class="green_3LnD">Extend</code><code>(</code><div class="inset_2cJr"><div><code>ClassName: </code><code class="blue_2Afy">string</code><code>,</code><span class="inlineDescription_17uy">-- <span>
+<p>The ClassName of the component. This is used for <code>__tostring</code> debug stuff.</p>
+</span></span></div><div><code>LifecycleEventsToCreate: </code><code class="blue_2Afy">PossibleLifecycleEvents?</code><span class="inlineDescription_17uy">-- <span>
+<p>The lifecycle events you want to create.</p>
+</span></span></div></div><code>) → </code><code class="blue_2Afy">BaseComponent</code></div><div>
+<p>Creates a new Component object.</p>
+</div></div></article></div><details><summary>Show raw api</summary><pre style="max-width:100%;white-space:pre-wrap">{
+    &quot;functions&quot;: [
+        {
+            &quot;name&quot;: &quot;Constructor&quot;,
+            &quot;desc&quot;: &quot;The base constructor function.&quot;,
+            &quot;params&quot;: [],
+            &quot;returns&quot;: [],
+            &quot;function_type&quot;: &quot;method&quot;,
+            &quot;ignore&quot;: true,
+            &quot;source&quot;: {
+                &quot;line&quot;: 608,
+                &quot;path&quot;: &quot;src/Component/init.lua&quot;
+            }
+        },
+        {
+            &quot;name&quot;: &quot;Extend&quot;,
+            &quot;desc&quot;: &quot;Creates a new Component object.&quot;,
+            &quot;params&quot;: [
+                {
+                    &quot;name&quot;: &quot;ClassName&quot;,
+                    &quot;desc&quot;: &quot;The ClassName of the component. This is used for `__tostring` debug stuff.&quot;,
+                    &quot;lua_type&quot;: &quot;string&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;LifecycleEventsToCreate&quot;,
+                    &quot;desc&quot;: &quot;The lifecycle events you want to create.&quot;,
+                    &quot;lua_type&quot;: &quot;PossibleLifecycleEvents?&quot;
+                }
+            ],
+            &quot;returns&quot;: [
+                {
+                    &quot;desc&quot;: &quot;&quot;,
+                    &quot;lua_type&quot;: &quot;BaseComponent&quot;
+                }
+            ],
+            &quot;function_type&quot;: &quot;static&quot;,
+            &quot;source&quot;: {
+                &quot;line&quot;: 781,
+                &quot;path&quot;: &quot;src/Component/init.lua&quot;
+            }
+        }
+    ],
+    &quot;properties&quot;: [],
+    &quot;types&quot;: [
+        {
+            &quot;name&quot;: &quot;PossibleLifecycleEvents&quot;,
+            &quot;desc&quot;: &quot;&quot;,
+            &quot;fields&quot;: [
+                {
+                    &quot;name&quot;: &quot;Destroyed&quot;,
+                    &quot;lua_type&quot;: &quot;boolean?&quot;,
+                    &quot;desc&quot;: &quot;Whether or not you want to create the `Destroyed` event.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;Destroying&quot;,
+                    &quot;lua_type&quot;: &quot;boolean?&quot;,
+                    &quot;desc&quot;: &quot;Whether or not you want to create the `Destroying` event.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;DidRedraw&quot;,
+                    &quot;lua_type&quot;: &quot;boolean?&quot;,
+                    &quot;desc&quot;: &quot;Whether or not you want to create the `DidRedraw` event.&quot;
+                },
+                {
+                    &quot;name&quot;: &quot;WillRedraw&quot;,
+                    &quot;lua_type&quot;: &quot;boolean?&quot;,
+                    &quot;desc&quot;: &quot;Whether or not you want to create the `WillRedraw` event.&quot;
+                }
+            ],
+            &quot;source&quot;: {
+                &quot;line&quot;: 764,
+                &quot;path&quot;: &quot;src/Component/init.lua&quot;
+            }
+        }
+    ],
+    &quot;name&quot;: &quot;Component&quot;,
+    &quot;desc&quot;: &quot;Components are classes that can be extended and built upon. Like [Roact](https://github.com/Roblox/roact/ \&quot;Roact by Roblox\&quot;) components, they represent a reusable object that you can create using constructors.\n\nYou can create and destroy Components using standard Luau class methods.\n\n```lua\nlocal AwesomeComponent = require(\&quot;AwesomeComponent\&quot;)\nlocal Object = AwesomeComponent.new()\nObject:Destroy()\n```\n\nTo declare our first Component class, Helium provides the following API:\n\n```lua\nlocal Helium = require(ReplicatedStorage.Helium)\nlocal MyComponent = Helium.Component.Extend(\&quot;MyComponent\&quot;)\n```\n\nWhen a new Component object is created using `MyComponent.new()`, the `Constructor` function is called with the same arguments passed through `new`. Here is a simple printer component:\n\n```lua\nlocal Printer = Helium.Component.Extend(\&quot;Printer\&quot;)\n\nfunction Printer:Constructor(Message: string)\n\tself.Message = Message\nend\n\nfunction Printer:Print()\n\tprint(self.Message)\nend\n\nlocal MyPrinter = Printer.new(\&quot;Hello, World!\&quot;)\nMyPrinter:Print() -- Hello, World!\nMyPrinter:Destroy() -- ( Currently has no effect, but is still a thing we can do )\n```\n\nWhile this has nothing to do with UI, it is a good example of the object-oriented structure we will be using for the rest of the tutorial.\n\n### UI components\n\nHelium gives total control over what a component does when it is constructed. You can create as many Gui objects as you like, and update them however you like.\nThe information we actually display to the user can be controlled using the Component class&#x27; `:Redraw()` method.\n\n:::warning\nNever ever call `:Redraw()` directly. This method is automatically called next `RenderStepped`, `Heartbeat` or `Stepped` event depending on what was set as the `RedrawBinding`.\n:::\n\nTo queue a redraw on the next frame, use `self.QueueRedraw()` instead. This is an anonymous, idempotent function that tells Helium to call `:Redraw()` automatically on the next `RedrawBinding` step.\nIt should be noted that when a component is constructed, Helium automatically calls `self.QueueRedraw()` once.\n\nWe can control whether `:Redraw()` is called on by using the static `RedrawBinding` property of components. This is an Enum which you can access by doing `Helium.RedrawBinding.`.\n\nLet&#x27;s say we wanted to create a `CoinsDisplay` component, which draws some representation of how many coins a player has.\n\n```lua\nlocal Helium = require(ReplicatedStorage.Helium)\nlocal CoinsDisplay = Helium.Component.Extend(\&quot;CoinsDisplay\&quot;)\n\nfunction CoinsDisplay:Constructor()\n\tself.Coins = 0\n\n\tself.Gui = Instance.new(\&quot;ScreenGui\&quot;)\n\tself.CoinsLabel = Instance.new(\&quot;TextLabel\&quot;)\n\tself.CoinsLabel.Size = UDim2.fromOffset(100, 100)\n\tself.CoinsLabel.Parent = self.Gui\n\n\tself.Gui.Parent = Players.LocalPlayer:WaitForChild(\&quot;PlayerGui\&quot;)\nend\n\nfunction CoinsDisplay:AddCoin()\n\tself.Coins += 1\n\tself.QueueRedraw()\nend\n\nCoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat\nfunction CoinsDisplay:Redraw()\n\tself.CoinsLabel.Text = self.Coins\nend\n\n-- Add 1 coin every second\nlocal MyCoinsDisplay = CoinsDisplay.new()\nwhile true do\n\ttask.wait(1)\n\tMyCoinsDisplay:AddCoin()\nend\n```\n\n![ComponentExample](https://i.imgur.com/QqGKiJs.gif)\n\nAs you can see this component functions as intended. However, there is one small problem: What would happen if we were to destroy the CoinDisplay component?\n\n```lua\nlocal MyCoinsDisplay = CoinsDisplay.new()\nMyCoinsDisplay:AddCoin()\nMyCoinsDisplay:Destroy()\n```\n\n![Bad](https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example2.png?raw=true)\n\nNow, wait a minute... why is the Gui still appearing? Furthermore, why are we seeing the text \&quot;Label\&quot; instead of the number 1 or 0?\nWhile it&#x27;s true that the state of `self.Coins` should have been set to 1 after calling `:AddCoin()`, the `MyCoinsDisplay` object was destroyed before the next `Heartbeat` frame started.\n\nThus, even though `self.QueueRedraw()` was called, this line of code never ran, as Helium automatically unbinds queued redraws once a component is destroyed:\n\n```lua\nfunction CoinsDisplay:Redraw()\n\tself.CoinsLabel.Text = self.Coins\nend\n```\n\nSince the Text property was never set, it was left with the default value of all TextLabel objects: \&quot;Label\&quot;.\n\nWe also have one other problem: the `Gui` and `coinsLabel` objects are still parented to PlayerGui when `CoinsDisplay:Destroy()` is called. While we could define a destructor and remove them there:\n\n```lua\nfunction CoinsDisplay:Destroy() -- Note: Do not do this\n\tself.Gui:Destroy()\nend\n```\n\n:::warning\n**Never** overwrite the `:Destroy` method, doing so all but guarantees you&#x27;ll have a major problem down the line.\n:::\n\nThe problem is that keeping track of every every object that is created can become unmanageable, especially after creating a large number of components\n\n```lua\nfunction MyApp:Constructor()\n\tself.MyComponentA = ComponentA.new(...)\n\tself.MyComponentB = ComponentB.new(...)\n\tself.MyComponentC = ComponentC.new(...)\n\tself.MyFrame = Instance.new(\&quot;Frame\&quot;)\nend\n\nfunction MyApp:Destroy() -- Note: Do not do this\n\tself.MyComponentA:Destroy()\n\tself.MyComponentB:Destroy()\n\tself.MyComponentC:Destroy()\n\tself.MyFrame:Destroy()\nend\n```\n\nSeems like a lot of work, right? Now, if you want to add or remove elements from your UI Component, you have to also add or remove it from the Destructor. If you forget to do this, bad things can happen.\nFurthermore, what if components/Gui Objects are created during `MyApp:Redraw()` rather than `MyComponent:Constructor()`? Now you have to use an if statement to conditionally check if the object even\nexists, and if it does, destroy it in the destructor.\n\nHelium utilizes the Janitor object for Component destructors. You can read more about it on the [Janitor documentation site](https://howmanysmall.github.io/Janitor/).\n\nGoing back to the CoinsDisplay example, our `Janitor` object can be utilized in the constructor as follows:\n\n```lua\nfunction CoinsDisplay:Constructor()\n\tself.Coins = 0\n\n\tself.Gui = self.Janitor:Add(Instance.new(\&quot;ScreenGui\&quot;), \&quot;Destroy\&quot;)\n\tself.CoinsLabel = self.Janitor:Add(Instance.new(\&quot;TextLabel\&quot;), \&quot;Destroy\&quot;)\n\tself.CoinsLabel.Size = UDim2.fromOffset(100, 100)\n\tself.CoinsLabel.Parent = self.Gui\n\n\tself.Gui.Parent = Players.LocalPlayer:WaitForChild(\&quot;PlayerGui\&quot;)\nend\n```\n\n`:Add()` is a special function that takes in an object that can be called. If the Janitor is given an Instance, then that instance will automatically be destroyed when the Component is destroyed.\nThe first argument is meant for the object you are passing. The second argument is the either `true` for functions or a string for the name of the function to call. You can see the API for [Janitor:Add](https://howmanysmall.github.io/Janitor/api/Janitor#Add) for more information.\nWhen the Component is destroyed, the `:Destroy()` method of the Janitor will be called which in turn cleans up everything in the Janitor.\n\n----\n\n### Improving our Component class\n\nNow, I will attempt to explain some improvements that can be made to our `CoinDisplay` code.\nFirst of all, we don&#x27;t actually need to create our gui objects until `:Redraw()` is called. For the sake of separation of concerns, it would be better to move that into the `:Redraw()` function.\n\n```lua\nfunction CoinsDisplay:Constructor()\n\tself.Coins = 0\n\n\t-- Note: self.QueueRedraw() is automatically called after the CoinsDisplay object is created\nend\n\nCoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat\nfunction CoinsDisplay:Redraw()\n\t-- This will run once on the first frame that our CoinsDisplay element is rendered (if it is rendered)\n\tif not self.Gui then\n\t\tself.Gui = self.Janitor:Add(Instance.new(\&quot;ScreenGui\&quot;), \&quot;Destroy\&quot;)\n\t\tself.CoinsLabel = self.Janitor:Add(Instance.new(\&quot;TextLabel\&quot;), \&quot;Destroy\&quot;)\n\t\tself.CoinsLabel.Size = UDim2.fromOffset(100, 100)\n\t\tself.CoinsLabel.Parent = self.Gui\n\n\t\tself.Gui.Parent = Players.LocalPlayer:WaitForChild(\&quot;PlayerGui\&quot;)\n\tend\n\n\tself.CoinsLabel.Text = self.Coins\nend\n```\n\nSee how much cleaner the constructor is? Now, when we want to locate the portion of code that draws what is displayed to the user, we need only look at the `:Redraw()` function.\nSecondly, we do not need to keep track of our CoinsLabel frame, as it is already parented to our Gui (we also do not need to give it to the Component&#x27;s Janitor for that matter).\n\n```lua\nfunction CoinsDisplay:Redraw()\n\tif not self.Gui then\n\t\tself.Gui = self.Janitor:Add(Instance.new(\&quot;ScreenGui\&quot;), \&quot;Destroy\&quot;) -- Only the gui needs to be given to the janitor.\n\n\t\tlocal CoinsLabel = Instance.new(\&quot;TextLabel\&quot;)\n\t\tCoinsLabel.Name = \&quot;CoinsLabel\&quot;\n\t\tCoinsLabel.Size = UDim2.fromOffset(100, 100)\n\t\tCoinsLabel.Parent = self.Gui\n\n\t\tself.Gui.Parent = Players.LocalPlayer:WaitForChild(\&quot;PlayerGui\&quot;)\n\tend\n\n\tself.Gui.CoinsLabel.Text = self.Coins -- Here we index gui instead of coinsLabel, I don&#x27;t personally recommend this because it&#x27;s extra indexing for no reason.\nend\n```\n\n---\n\nWe deferred creation of our `self.Gui` object until `:Redraw()` is called by Helium. However, there is one small problem with our code:\n\n```lua\nself.Gui.Parent = Players.LocalPlayer:WaitForChild(\&quot;PlayerGui\&quot;)\n```\n\nThis `:WaitForChild()` is a yielding function. Yielding on a Redraw means our code could be subject to race conditions. In general, you should avoid yielding within `:Redraw()` wherever possible.\nFurthermore, it is not ideal to hardcode the parent in which our component&#x27;s UI is placed. What if, for example, we wanted to nest a `CoinsDisplay` object inside of another menu? Let&#x27;s define the\nparent in which we want to place the component as a parameter of the `CoinsDisplay` constructor:\n\n```lua\nfunction CoinsDisplay:Constructor(Parent: Instance)\n\tself.Coins = 0\n\tself.Parent = Parent\nend\n\nfunction CoinsDisplay:Redraw()\n\tif not self.Gui then\n\t\t...\n\t\tself.Gui.Parent = self.Parent\n\tend\n\n\tself.Gui.CoinsLabel.Text = self.Coins\nend\n```\n\nNow, when we create our component, we should provide it with a parent argument:\n\n```lua\nlocal PlayerGui = Players.LocalPlayer:WaitForChild(\&quot;PlayerGui\&quot;)\n\n-- Add 1 coin every second\nlocal MyCoinsDisplay = CoinsDisplay.new(PlayerGui)\nwhile true do\n\ttask.wait(1)\n\tMyCoinsDisplay:AddCoin()\nend\n```\n\nThere is one other thing that will make the code simpler: UI Templates. Because Helium gives us full control over how our GUI elements are created, we can place a template inside of our component&#x27;s module:\n\n![example](https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example3.png?raw=true)\n\n## Final Code\n\nHere is the final code for the CoinsDisplay module:\n\n```lua\nlocal Helium = require(ReplicatedStorage.Helium)\nlocal CoinsDisplay = Helium.Component.Extend(\&quot;CoinsDisplay\&quot;)\n\nfunction CoinsDisplay:Constructor(Parent: Instance)\n\tself.Coins = 0\n\tself.Parent = Parent\nend\n\nfunction CoinsDisplay:AddCoin()\n\tself.Coins += 1\n\tself.QueueRedraw()\nend\n\nCoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat\nfunction CoinsDisplay:Redraw()\n\tif not self.Gui then\n\t\tself.Gui = self.Janitor:Add(script.CoinsDisplayTemplate:Clone(), \&quot;Destroy\&quot;)\n\t\tself.Gui.Parent = self.Parent\n\tend\n\n\tself.Gui.CoinsLabel.Text = \&quot;Coins: \&quot; .. self.Coins\nend\n\nreturn CoinsDisplay\n```\n\nAnd here is a LocalScript that utilizes the module:\n\n```lua\nlocal CoinsDisplay = require(ReplicatedStorage.CoinsDisplay)\nlocal PlayerGui = Players.LocalPlayer:WaitForChild(\&quot;PlayerGui\&quot;)\n\n-- Add 1 coin every second\nlocal MyCoinsDisplay = CoinsDisplay.new(PlayerGui)\nwhile true do\n\ttask.wait(1)\n\tMyCoinsDisplay:AddCoin()\nend\n```\n\n![example](https://github.com/headjoe3/Rocrastinate/blob/master/docs/introduction_coins_example4.gif?raw=true)\n\n------\n\n# 1.2 Component State Reduction\n\n## The Observer Pattern\n\nIn order to understand how we can re-draw our components based on store updates, we must first look at the way in which the Helium Store propogates updates\n\nAs we saw in the last tutorial, reducers are given a special function `SetState()`, which mutates a value in the store.\n\nTechnically, for the root reducer, the actual function `GetState()` passed to the reducer is `Store:GetState()`, and the actual function `SetState()` is `Store:SetState()`.\n\nWhat `Store:GetState(...KeyPath)` does is parse a provided series of string keys until a value is found in the store. If a key does not exist at a given path, the store will return `nil`. For the sake of mutation safety, the store will NOT directly return tables in the store when calling `Store:GetState(...)`; instead, tables will be deeply cloned, then returned.\n\nIf you want to keep a table in the store that is directly mutable when it is retrieved using `get()`, you can create a pointer to it by wrapping it in a function:\n\n```lua\nlocal function CreateFenv(Value: any)\n\treturn function()\n\t\treturn Value\n\tend\nend\n\nlocal Table = {}\nStore:SetState(\&quot;Table\&quot;, CreateFenv(Table))\n\n---...\n\nlocal PointsToTable = Store:GetState(\&quot;Table\&quot;)\nprint(Table == PointsToTable()) -- true\n```\n\n```cpp\nRbxInstance CreateFenv(void) : (RbxInstance Value)\n{\n\treturn Value;\n}\n\nGenericDictionary Table = table();\nStore::SetState(L\&quot;Table\&quot;, CreateFenv:(Table));\n\n// ...\n\nvoid PointsToTable = Store::GetState @ Table;\nprint(Table == PointsToTable()); // true\n```\n\nWhereas `GetState()` does more than directly returning the value in the store, the function `SetState()` also does more than just mutating the value in the store. When `store:SetState()` is called, it keeps track of each key that was changed, and notifies any observers of the change.\n\nWe can observe store changes using the `Store:Connect(\&quot;Path.To.Key\&quot;, Function)` function. Unlike `GetState` and `SetState`, the key path is denoted using the dot notation. Subscribing to the empty string `\&quot;\&quot;` will observe all store changes.\n\nExample:\n\n```lua\nlocal Store = Helium.Store.new(function()\nend, {PlayerStats = {Coins = 0}})\n\nlocal Disconnect = Store:Connect(\&quot;PlayerStats.Coins\&quot;, function()\n\tlocal Coins = Store:GetState(\&quot;PlayerStats.Coins\&quot;)\n\tprint(\&quot;You have\&quot;, coins, \&quot;Coins\&quot;)\nend)\n\nStore:SetState(\&quot;PlayerStats\&quot;, \&quot;Coins\&quot;, 10) -- You have 10 Coins\nDisconnect()\nStore:SetState(\&quot;PlayerStats\&quot;, \&quot;Coins\&quot;, 20) -- No output.\n```\n\n## Observing with Components\n\nOur Components can listen to changes in a store and automatically queue updates when a value in the store has changed. In order to do this, some preconditions need to be set:\n1. The component needs to know what store to observe changes from\n2. The component needs to know what key paths to subscribe to, and how to display them.\n\nThe first precondition is simple: We can simply pass the store in as an argument in the Component&#x27;s constructor. **In fact, Helium Components must receive a store as the first argument in their constructor in order to observe changes from that store**.\n\nWhile passing the same first argument through every single component down the tree of components may seem verbose, this actually makes it easy to differentiate \&quot;Container Components\&quot; (which are generally coupled with a particular segment of the application) from \&quot;Presentational Components\&quot; (which can generally be re-used throughout the application). More on that in a later tutorial.\n\n```lua\nfunction CoinsDisplay:Constructor(Store, Parent: Instance)\n\tself.Parent = Parent\n\tself.Store = Store\nend\n```\n\nIn this instance, we set `self.Store = Store` so that we can keep track of the store in case we need to give it to a nested component in our redraw function (similar to how we keep track of `Parent` in order to know where we should inevitably place the copy of our component&#x27;s template).\nNow what we want is to subscribe to a value in the store (say, &#x27;Coins&#x27;), and automatically call `self.QueueRedraw()` whenever this state changes. Helium provides an easy way of doing this for Components using a property called `Reduction`:\n\n```lua\nCoinsDisplay.Reduction = {Coins = \&quot;Store.Path.To.Coins\&quot;}\n```\n\nThis will automatically subscribe new CoinsDisplay components from the keypath on the right-hand side (`\&quot;Store.Path.To.Coins\&quot;`), and map it to the value on the left-hand side (`\&quot;Coins\&quot;`). The reduced state will then be passed in as a table, as the first argument to `CoinsDisplay:Redraw()`\n\n```lua\nCoinsDisplay.Reduction = {Coins = \&quot;Store.Path.To.Coins\&quot;}\nCoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat\nfunction CoinsDisplay:Redraw(ReducedState)\n\tlocal Gui = self.Gui\n\tif not Gui then\n\t\tGui = self.Janitor:Add(script.CoinsDisplayTemplate:Clone(), \&quot;Destroy\&quot;)\n\t\tGui.Parent = self.Parent\n\t\tself.Gui = Gui\n\tend\n\n\t-- Now we can display from ReducedState.Coins instead of self.Coins.\n\t-- In fact, we can get rid of self.Coins now that all our data is coming from the store.\n\tGui.CoinsLabel.Text = \&quot;Coins: \&quot; .. ReducedState.Coins\nend\n```\n\nWe can now get rid of the `self.coins` property initialized in the constructor. In fact, we can also get rid of the `CoinsDisplay:AddCoin()` method we defined earlier, and replace it with actions such as `ADD_COINS` that we created in the last tutorial. Putting it all together:\n\n## Final Code\n\n### ReplicatedStorage.CoinsDisplay ModuleScript\n```lua\nlocal ReplicatedStorage = game:GetService(\&quot;ReplicatedStorage\&quot;)\nlocal Helium = require(ReplicatedStorage.Helium)\nlocal CoinsDisplay = Helium.Component.Extend(\&quot;CoinsDisplay\&quot;)\n\nfunction CoinsDisplay:Constructor(Store, Parent: Instance)\n\tself.Store = Store\n\tself.Parent = Parent\nend\n\ntype ReducedState = {Coins: number}\n\nCoinsDisplay.Reduction = {Coins = \&quot;\&quot;} -- In this example, our store state is equivalent to coins\nCoinsDisplay.RedrawBinding = Helium.RedrawBinding.Heartbeat\nfunction CoinsDisplay:Redraw(ReducedState: ReducedState)\n\tlocal Gui = self.Gui\n\tif not Gui then\n\t\tGui = self.Janitor:Add(script.CoinsDisplayTemplate:Clone(), \&quot;Destroy\&quot;)\n\t\tGui.Parent = self.Parent\n\t\tself.Gui = Gui\n\tend\n\n\tGui.CoinsLabel.Text = \&quot;Coins: \&quot; .. ReducedState.Coins\nend\n\nreturn CoinsDisplay\n```\n\n### A LocalScript:\n```lua\nlocal Players = game:GetService(\&quot;Players\&quot;)\nlocal ReplicatedStorage = game:GetService(\&quot;ReplicatedStorage\&quot;)\n\nlocal CoinsDisplay = require(ReplicatedStorage.CoinsDisplay)\nlocal Helium = require(ReplicatedStorage.Helium)\n\nlocal PlayerGui = Players.LocalPlayer:WaitForChild(\&quot;PlayerGui\&quot;)\n\nlocal AddCoins = Helium.MakeActionCreator(\&quot;AddCoins\&quot;, function(Amount: number)\n\treturn {Amount = Amount}\nend)\n\ntype BaseAction = {Type: string}\n\nlocal function Reducer(Action: BaseAction, GetState, SetState)\n\tif Action.Type == AddCoins.ActionName then\n\t\tSetState(GetState() + Action.Amount)\n\tend\nend\n\nlocal InitialState = 0\n\n-- Create the store\nlocal CoinsStore = Helium.Store.new(Reducer, InitialState)\n\n-- Mount the root component; notice how CoinsStore is given as the first argument\nCoinsDisplay.new(CoinsStore, PlayerGui)\n\n-- Add 1 coin every second (hopefully)\nwhile true do\n\tlocal DeltaTime = task.wait(1)\n\tCoinsStore:Fire(AddCoins(math.floor(DeltaTime)))\nend\n```\n\nThis should function exactly the same as before, but this time our coins are pulling directly from the store, and listening to action dispatches. We also don&#x27;t need to store our `CoinsDisplay` instance as a variable in this case, nor do we need to directly tell the CoinsDisplay component to increment the state of &#x27;coins&#x27;.\n\n---\n\n:::info\nAll of this documentation is from the original [Rocrastinate docs](https://github.com/headjoe3/Rocrastinate/tree/master/docs) and was written by DataBrain, so 100% of the credit should go to him.\nAll I did was modify it to fit Helium&#x27;s API.\n:::&quot;,
+    &quot;source&quot;: {
+        &quot;line&quot;: 602,
+        &quot;path&quot;: &quot;src/Component/init.lua&quot;
+    }
+}</pre></details></div><div class="col col--3"><div class="tableOfContents_35-E thin-scrollbar"><ul class="table-of-contents table-of-contents__left-border"><li><a href="#types" class="table-of-contents__link">Types</a><ul><li><a href="#PossibleLifecycleEvents" class="table-of-contents__link">PossibleLifecycleEvents</a></li></ul></li><li><a href="#properties" class="table-of-contents__link">Properties</a></li><li><a href="#functions" class="table-of-contents__link">Functions</a><ul><li><a href="#Extend" class="table-of-contents__link">.Extend</a></li></ul></li></ul></div></div></div></div></main></div></div><footer class="footer footer--dark"><div class="container"><div class="footer__bottom text--center"><div class="footer__copyright">Copyright © 2021 howmanysmall. Built with Moonwave and Docusaurus.</div></div></div></footer></div>
+<script src="/Helium/assets/js/runtime~main.451f22ca.js"></script>
+<script src="/Helium/assets/js/main.136d6786.js"></script>
+</body>
+</html>
