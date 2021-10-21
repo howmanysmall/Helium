@@ -34,3 +34,7 @@ Janitor is a top tier way to manage your Instances, connections, and whatnot. Yo
 ### Store Class
 
 Helium has a Store class similar to [Redux](https://redux.js.org/) and [Rodux](https://github.com/Roblox/rodux/ "Rodux by Roblox") made just for it. It's incredibly fast and fairly simple to use. You can check out the [documentation](/api/Store) for more.
+
+### Incredible Support for Sleitnick's Component library
+
+Helium is the only library that natively supports Sleitnick's [Component](https://github.com/Sleitnick/RbxUtil/tree/main/modules/component) library. You can use this in tandem with the Store object to have a much cleaner way to manage your UI.

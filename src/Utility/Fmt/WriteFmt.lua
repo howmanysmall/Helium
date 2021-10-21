@@ -149,8 +149,9 @@ local function Interpolate(Formatter, Parameter, Writer)
 		Writer.BiggestPositionalParameter = math.max(Writer.BiggestPositionalParameter, PositionalParameter + 1)
 		Argument = Writer.Arguments[PositionalParameter + 1]
 	elseif IsRegularParameter then
-		Writer.CurrentArgument += 1
-		Argument = Writer.Arguments[Writer.CurrentArgument]
+		local CurrentArgument = Writer.CurrentArgument + 1
+		Writer.CurrentArgument = CurrentArgument
+		Argument = Writer.Arguments[CurrentArgument]
 	else
 		if not IsValidVariable(LeftSide) then
 			error("Invalid named parameter `" .. LeftSide .. "`.", 4)
@@ -194,10 +195,10 @@ local function ComposeWriter(Arguments)
 
 	return {
 		Arguments = Arguments;
-		CurrentArgument = 0;
 		BiggestPositionalParameter = 0;
-		NamedParameters = type(LastArgument) == "table" and LastArgument or nil;
+		CurrentArgument = 0;
 		HadNamedParameter = false;
+		NamedParameters = type(LastArgument) == "table" and LastArgument or nil;
 	}
 end
 
@@ -246,7 +247,8 @@ local function WriteFmt(Formatter, Template, ...)
 		end
 	end
 
-	local NumberOfArguments = Writer.HadNamedParameter and #Writer.Arguments - 1 or #Writer.Arguments
+	local Length = #Writer.Arguments
+	local NumberOfArguments = Writer.HadNamedParameter and Length - 1 or Length
 
 	if Writer.CurrentArgument > NumberOfArguments then
 		error(Writer.CurrentArgument .. " " .. Pluralize(Writer.CurrentArgument, "parameter") .. " found in template string, but there " .. Amountify(NumberOfArguments) .. " " .. Pluralize(NumberOfArguments, "argument") .. ".", 3)
