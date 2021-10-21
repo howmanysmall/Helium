@@ -17,6 +17,6 @@ I've added quite a few things to the library over the base version of Rocrastina
 - Various small optimizations that can be configured using the GlobalConfiguration object.
 - The `Make` function for easy Instance creation.
 - `MakeActionCreator` makes it less annoying to create action creators.
-- A port of [Flipper](https://github.com/Reselim/Flipper) for Helium Components, called [Hydrogen](https://github.com/howmanysmall/Hydrogen), which is used for animation.
+- A port of [Flipper](https://github.com/Reselim/Flipper) for Helium Components, called [FlipperHelium](https://github.com/howmanysmall/FlipperHelium), which is used for animation.
 
 The library itself may be old but it's extremely fast, and has basically all you could need for a UI library.
