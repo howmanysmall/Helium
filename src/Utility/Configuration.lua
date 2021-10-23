@@ -8,7 +8,7 @@ local DEFAULT_CONFIGURATION = {
 	RunTypeChecking = false;
 
 	-- Runs an assert check when QueueRedraw is called to validate that a component's RedrawBinding is correct.
-	SafeRedrawCheck = true;
+	SafeRedrawCheck = false;
 
 	-- Enables using the V2 version of CombineReducers.
 	UseCombineReducersV2 = true;

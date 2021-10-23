@@ -22,7 +22,7 @@ local function UpdateRedrawComponent()
 			debug.profilebegin("WillRedraw-" .. ComponentName)
 			local WillRedraw = Component.WillRedraw
 			if WillRedraw then
-				WillRedraw:Fire(...)
+				WillRedraw:Fire(Component, ...)
 			end
 
 			debug.profileend()
@@ -34,7 +34,7 @@ local function UpdateRedrawComponent()
 			debug.profilebegin("DidRedraw-" .. ComponentName)
 			local DidRedraw = Component.DidRedraw
 			if DidRedraw then
-				DidRedraw:Fire(...)
+				DidRedraw:Fire(Component, ...)
 			end
 
 			debug.profileend()
@@ -43,13 +43,13 @@ local function UpdateRedrawComponent()
 		function RedrawComponent(Component, ...)
 			local WillRedraw = Component.WillRedraw
 			if WillRedraw then
-				WillRedraw:Fire(...)
+				WillRedraw:Fire(Component, ...)
 			end
 
 			Component:Redraw(Component.GetReducedState(), ...)
 			local DidRedraw = Component.DidRedraw
 			if DidRedraw then
-				DidRedraw:Fire(...)
+				DidRedraw:Fire(Component, ...)
 			end
 		end
 	end
@@ -59,26 +59,28 @@ UpdateRedrawComponent()
 
 local function GetBindingHandler(Queue)
 	return function(...)
-		BindingHandlerActive[Queue] = true
-		local RequeueNextFrame = {}
-		local Handled = {}
-
 		local Component = next(Queue)
-		while Component do
-			Queue[Component] = nil
-			if Handled[Component] then
-				RequeueNextFrame[Component] = true
-			else
-				Handled[Component] = true
-				task.spawn(RedrawComponent, Component, ...)
+		if Component then
+			BindingHandlerActive[Queue] = true
+			local RequeueNextFrame = {}
+			local Handled = {}
+
+			while Component do
+				Queue[Component] = nil
+				if Handled[Component] then
+					RequeueNextFrame[Component] = true
+				else
+					Handled[Component] = true
+					task.spawn(RedrawComponent, Component, ...)
+				end
+
+				Component = next(Queue)
 			end
 
-			Component = next(Queue)
-		end
-
-		BindingHandlerActive[Queue] = false
-		for RequeueComponent in next, RequeueNextFrame do
-			Queue[RequeueComponent] = true
+			BindingHandlerActive[Queue] = false
+			for RequeueComponent in next, RequeueNextFrame do
+				Queue[RequeueComponent] = true
+			end
 		end
 	end
 end
@@ -746,11 +748,11 @@ function ComponentStaticMetatable:__newindex(Index, Value)
 	end
 end
 
-local POSSIBLE_LIFECYCLE_EVENTS = {
-	Destroyed = true;
-	Destroying = true;
-	DidRedraw = true;
-	WillRedraw = true;
+local DEFAULT_LIFECYCLE_EVENTS = {
+	Destroyed = false;
+	Destroying = false;
+	DidRedraw = false;
+	WillRedraw = false;
 }
 
 --[=[
@@ -791,7 +793,7 @@ function Component.Extend(ClassName: string, PossibleLifecycleEventsToCreate: Po
 		return ClassName
 	end
 
-	local LifecycleEventsToCreate = PossibleLifecycleEventsToCreate or POSSIBLE_LIFECYCLE_EVENTS
+	local LifecycleEventsToCreate = PossibleLifecycleEventsToCreate or DEFAULT_LIFECYCLE_EVENTS
 
 	function ComponentStatics.new(ComponentStore, ...)
 		local self = setmetatable({}, ComponentMetatable)
@@ -829,7 +831,7 @@ function Component.Extend(ClassName: string, PossibleLifecycleEventsToCreate: Po
 	function ComponentStatics:Destroy()
 		local Destroying = self.Destroying
 		if Destroying then
-			Destroying:Fire()
+			Destroying:Fire(Component)
 		end
 
 		self.Janitor:Destroy()
@@ -841,7 +843,7 @@ function Component.Extend(ClassName: string, PossibleLifecycleEventsToCreate: Po
 
 		local Destroyed = self.Destroyed
 		if Destroyed then
-			Destroyed:Fire()
+			Destroyed:Fire(Component)
 			Destroyed:Destroy()
 		end
 
